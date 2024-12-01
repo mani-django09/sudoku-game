@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy - Sudoku Game{% endblock %}
+
+{% block content %}
+<div class="legal-content">
+    <h1>Privacy Policy</h1>
+    
+    <section class="legal-section">
+        <h2>1. Information We Collect</h2>
+        <p>We collect information that you provide directly to us when using our Sudoku Game:</p>
+        <ul>
+            <li>Game progress and scores</li>
+            <li>Usage data and preferences</li>
+            <li>Contact information when you reach out to us</li>
+        </ul>
+    </section>
+
+    <section class="legal-section">
+        <h2>2. How We Use Your Information</h2>
+        <p>We use the information we collect to:</p>
+        <ul>
+            <li>Provide and maintain our game service</li>
+            <li>Track your progress and save your game states</li>
+            <li>Improve our game features and user experience</li>
+            <li>Respond to your comments and questions</li>
+        </ul>
+    </section>
+
+    <section class="legal-section">
+        <h2>3. Information Sharing</h2>
+        <p>We do not sell, trade, or rent your personal information to third parties. We may share generic aggregated demographic information not linked to any personal identification information regarding visitors and users with our business partners and trusted affiliates.</p>
+    </section>
+
+    <section class="legal-section">
+        <h2>4. Cookies</h2>
+        <p>We use cookies to enhance your experience while using our website. Cookies are small files that a site or its service provider transfers to your computer's hard drive through your Web browser that enables the site's or service provider's systems to recognize your browser and capture and remember certain information.</p>
+    </section>
+
+    <section class="legal-section">
+        <h2>5. Data Security</h2>
+        <p>We implement appropriate data collection, storage, and processing practices and security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information and game data.</p>
+    </section>
+
+    <section class="legal-section">
+        <h2>6. Changes to This Policy</h2>
+        <p>We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page.</p>
+    </section>
+
+    <div class="legal-footer">
+        <p>Last updated: December 1, 2024</p>
+        <a href="{{ url_for('index') }}" class="back-link">Return to Game</a>
+    </div>
+</div>
+{% endblock %}

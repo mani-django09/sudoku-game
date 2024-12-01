@@ -193,6 +193,15 @@ def contact():
         return redirect(url_for('contact'))
     return render_template('contact.html')
 
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 @app.route('/daily-challenge')
 def daily_challenge():
     try:
