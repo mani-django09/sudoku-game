@@ -460,17 +460,57 @@ class SudokuGame {
             hintButton.addEventListener('click', () => this.getHint());
         }
 
-        // Setup difficulty buttons
+        // Setup difficulty buttons and daily challenge
         document.querySelectorAll('.mode-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
+            button.addEventListener('click', async (e) => {
                 // Remove active class from all buttons
                 document.querySelectorAll('.mode-btn').forEach(btn => {
                     btn.classList.remove('active');
                 });
                 // Add active class to clicked button
                 e.target.classList.add('active');
-                // Start new game with selected difficulty
-                this.newGame(e.target.dataset.difficulty);
+                
+                if (e.target.id === 'daily-challenge') {
+                    try {
+                        const response = await fetch('/daily-challenge');
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch daily challenge');
+                        }
+                        const data = await response.json();
+                        this.puzzle = data.puzzle;
+                        this.solution = data.solution;
+                        this.currentNumbers = [...this.puzzle];
+                        
+                        // Reset game state
+                        this.gameState = {
+                            moves: [],
+                            currentMove: -1,
+                            remainingHints: 3,
+                            mistakes: 0
+                        };
+                        
+                        this.pencilMarks = Array(81).fill().map(() => new Set());
+                        this.pencilMode = false;
+                        
+                        // Update UI
+                        this.updatePencilModeIndicator();
+                        this.updateHintCount();
+                        this.updateMistakesDisplay();
+                        await this.renderBoard();
+                        
+                        // Reset and start timer
+                        if (this.timer) {
+                            this.timer.reset();
+                            this.timer.start();
+                        }
+                    } catch (error) {
+                        console.error('Error loading daily challenge:', error);
+                        this.showError('Failed to load daily challenge: ' + error.message);
+                    }
+                } else {
+                    // Start new game with selected difficulty
+                    this.newGame(e.target.dataset.difficulty);
+                }
             });
         });
 

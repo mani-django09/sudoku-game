@@ -2,6 +2,8 @@ from flask import render_template, jsonify, request, flash, redirect, url_for
 from app import app
 from utils.generator import generate_puzzle, analyze_hint_candidates
 
+from datetime import datetime, timedelta
+import random
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -60,5 +62,38 @@ def contact():
         # For now, we'll just show a success message
         flash('Thank you for your message! We will get back to you soon.', 'success')
         return redirect(url_for('contact'))
+
+@app.route('/daily-challenge')
+def daily_challenge():
+    today = datetime.now().date()
+    
+    # Try to get today's puzzle from the database
+    result = execute_sql_tool(f"""
+        SELECT puzzle, solution, difficulty 
+        FROM daily_puzzles 
+        WHERE puzzle_date = '{today}'
+    """)
+    
+    if not result:
+        # Generate a new puzzle with random difficulty
+        difficulty = random.choice(['easy', 'medium', 'hard'])
+        puzzle, solution = generate_puzzle(difficulty)
+        
+        # Store the puzzle in the database
+        execute_sql_tool(f"""
+            INSERT INTO daily_puzzles (puzzle_date, puzzle, solution, difficulty)
+            VALUES ('{today}', '{puzzle}', '{solution}', '{difficulty}')
+        """)
+    else:
+        puzzle = result[0][0]
+        solution = result[0][1]
+        difficulty = result[0][2]
+    
+    return jsonify({
+        'puzzle': puzzle,
+        'solution': solution,
+        'difficulty': difficulty,
+        'date': today.strftime('%Y-%m-%d')
+    })
         
     return render_template('contact.html')
