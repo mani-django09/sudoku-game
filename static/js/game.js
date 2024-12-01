@@ -260,6 +260,9 @@ class SudokuGame {
                 return;
             }
 
+            // Clear any existing visualizations
+            this.clearTechniqueVisualizations();
+
             const response = await fetch('/hint', {
                 method: 'POST',
                 headers: {
@@ -300,17 +303,22 @@ class SudokuGame {
             this.pencilMarks[index].clear();
             this.renderPencilMarks(index);
 
-            // Show hint message
-            const hintMessage = document.createElement('div');
-            hintMessage.className = 'hint-message';
-            hintMessage.textContent = hint.message;
-            document.querySelector('.game-container').appendChild(hintMessage);
+            // Visualize the solving technique
+            await this.visualizeTechnique(hint);
             
-            // Update number and UI
-            this.currentNumbers[index] = hint.value;
-            cell.textContent = hint.value;
-            cell.classList.add('hint', 'hint-active');
-            cell.classList.add('hint-reveal');
+            // Show hint message after a short delay
+            setTimeout(() => {
+                const hintMessage = document.createElement('div');
+                hintMessage.className = 'hint-message';
+                hintMessage.textContent = hint.message;
+                document.querySelector('.game-container').appendChild(hintMessage);
+                
+                // Update number and UI
+                this.currentNumbers[index] = hint.value;
+                cell.textContent = hint.value;
+                cell.classList.add('hint', 'hint-active');
+                cell.classList.add('hint-reveal');
+            }, 1500); // Wait for visualization to complete
             
             // Remove hint message after delay
             setTimeout(() => {
@@ -797,4 +805,81 @@ class SudokuGame {
         pencilButton.classList.toggle('active', this.pencilMode);
     }
 
+    clearTechniqueVisualizations() {
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.classList.remove(
+                'hint-candidate',
+                'hint-related',
+                'hint-elimination',
+                'hint-single',
+                'hint-hidden-single',
+                'hint-highlight'
+            );
+        });
+    }
+
+    async visualizeTechnique(hint) {
+        return new Promise((resolve) => {
+            const { row, col, technique, related_cells = [] } = hint;
+            const index = row * 9 + col;
+            const mainCell = document.querySelector(`.cell[data-index="${index}"]`);
+            
+            if (!mainCell) {
+                resolve();
+                return;
+            }
+
+            // Clear any existing visualizations
+            this.clearTechniqueVisualizations();
+
+            // Add visualization based on technique
+            switch (technique) {
+                case 'single_candidate':
+                    mainCell.classList.add('hint-single');
+                    related_cells.forEach(({ row, col }) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            relatedCell.classList.add('hint-elimination');
+                        }
+                    });
+                    break;
+
+                case 'hidden_single':
+                    mainCell.classList.add('hint-hidden-single');
+                    related_cells.forEach(({ row, col }) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            relatedCell.classList.add('hint-related');
+                        }
+                    });
+                    break;
+
+                case 'basic_elimination':
+                    mainCell.classList.add('hint-candidate');
+                    related_cells.forEach(({ row, col }) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            relatedCell.classList.add('hint-related');
+                        }
+                    });
+                    break;
+            }
+
+            // Animate the visualization
+            mainCell.classList.add('hint-highlight');
+            
+            // Resolve after animation completes
+            setTimeout(() => {
+                resolve();
+            }, 1500);
+        });
+    }
 }
+
+// Initialize game when document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    new SudokuGame();
+});

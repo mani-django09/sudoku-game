@@ -4,6 +4,7 @@ from utils.generator import generate_puzzle, analyze_hint_candidates
 
 from datetime import datetime, timedelta
 import random
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -18,37 +19,37 @@ def new_game(difficulty):
 
 @app.route('/hint', methods=['POST'])
 def get_hint():
-    data = request.get_json()
-    current_state = data.get('current_state')
-    solution = data.get('solution')
-    
-    if not current_state or not solution:
-        return jsonify({'error': 'Missing required data'}), 400
-    
-    # Get hint candidates with analysis
-    candidates = analyze_hint_candidates(current_state, solution)
-    
-    if not candidates:
-        return jsonify({'message': 'No hints available'}), 404
-    
-    # Get the best hint (first candidate)
-    best_hint = candidates[0]
-    
-    # Prepare hint message based on technique
-    hint_messages = {
-        'single_candidate': 'Look for a cell where only one number is possible',
-        'hidden_single': 'Find a number that can only go in one position',
-        'basic_elimination': 'Use basic elimination to find the correct number'
-    }
-    
-    return jsonify({
-        'row': best_hint['row'],
-        'col': best_hint['col'],
-        'value': best_hint['value'],
-        'technique': best_hint['technique'],
-        'message': hint_messages.get(best_hint['technique'], 'Use elimination to solve this cell')
-    })
-
+    try:
+        data = request.get_json()
+        current_state = data.get('board')
+        solution = data.get('solution')
+        
+        if not current_state or not solution:
+            return jsonify({'error': 'Missing board state or solution'}), 400
+            
+        hint = analyze_hint_candidates(current_state, solution)
+        if not hint:
+            return jsonify({'error': 'No valid hints available'}), 404
+            
+        # Prepare hint message based on technique
+        hint_messages = {
+            'single_candidate': 'Look for a cell where only one number is possible',
+            'hidden_single': 'Find a number that can only go in one position',
+            'basic_elimination': 'Use basic elimination to find the correct number'
+        }
+        
+        return jsonify({
+            'row': hint['row'],
+            'col': hint['col'],
+            'value': hint['value'],
+            'technique': hint['technique'],
+            'message': hint_messages.get(hint['technique'], 'Use elimination to solve this cell'),
+            'related_cells': hint['related_cells']
+        })
+        
+    except Exception as e:
+        print(f"Error generating hint: {str(e)}")
+        return jsonify({'error': 'Failed to generate hint'}), 500
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
@@ -59,9 +60,9 @@ def contact():
         message = request.form.get('message')
         
         # Here you would typically send the email or store the contact form submission
-        # For now, we'll just show a success message
         flash('Thank you for your message! We will get back to you soon.', 'success')
         return redirect(url_for('contact'))
+    return render_template('contact.html')
 
 @app.route('/daily-challenge')
 def daily_challenge():
