@@ -1,6 +1,6 @@
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from app import app
-from utils.generator import generate_puzzle
+from utils.generator import generate_puzzle, analyze_hint_candidates
 
 @app.route('/')
 def index():
