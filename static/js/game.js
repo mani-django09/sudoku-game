@@ -615,14 +615,26 @@ class SudokuGame {
                 throw new Error('Invalid index or number for pencil mark');
             }
 
+            if (!this.selectedCell) {
+                throw new Error('No cell selected');
+            }
+
             const pencilMarksContainer = this.selectedCell.querySelector('.pencil-marks');
             if (!pencilMarksContainer) {
                 throw new Error('Pencil marks container not found');
             }
 
+            // Initialize pencil marks array if needed
             if (!this.pencilMarks[index]) {
                 this.pencilMarks[index] = new Set();
             }
+
+            // Save current state for undo
+            const oldState = {
+                index: index,
+                value: this.currentNumbers[index],
+                pencilMarks: new Set(this.pencilMarks[index])
+            };
 
             const hasNumber = this.pencilMarks[index].has(num);
             
@@ -632,11 +644,27 @@ class SudokuGame {
                 this.pencilMarks[index].add(num);
             }
 
+            // Record move for undo
+            this.gameState.moves.splice(this.gameState.currentMove + 1);
+            this.gameState.moves.push({
+                type: 'pencil',
+                oldState: oldState,
+                newState: {
+                    index: index,
+                    value: this.currentNumbers[index],
+                    pencilMarks: new Set(this.pencilMarks[index])
+                }
+            });
+            this.gameState.currentMove++;
+
             this.renderPencilMarks(index);
         } catch (error) {
-            console.error('Error in togglePencilMark:', error);
-            this.selectedCell.classList.add('error');
-            setTimeout(() => this.selectedCell.classList.remove('error'), 1000);
+            console.error('Error in togglePencilMark:', error.message);
+            if (this.selectedCell) {
+                this.selectedCell.classList.add('error');
+                setTimeout(() => this.selectedCell.classList.remove('error'), 1000);
+            }
+            this.showError(error.message);
         }
     }
 
