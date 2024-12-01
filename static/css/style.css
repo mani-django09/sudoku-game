@@ -391,30 +391,7 @@ body {
     margin: 0 0 15px 0;
 }
 
-/* Mobile Download Section */
-.mobile-download {
-    text-align: center;
-    margin-top: 40px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.app-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin: 20px 0;
-}
-
-.app-button img {
-    height: 40px;
-}
-
-.qr-code img {
-    width: 100px;
-    height: 100px;
-}
+/* Removed mobile download section */
 
 /* Paused State */
 .paused .cell {
