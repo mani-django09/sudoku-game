@@ -21,14 +21,30 @@ def new_game(difficulty):
 def get_hint():
     try:
         data = request.get_json()
-        current_state = data.get('board')
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        current_state = data.get('current_state')
         solution = data.get('solution')
         
+        # Validate input data
         if not current_state or not solution:
             return jsonify({'error': 'Missing board state or solution'}), 400
+        
+        if not isinstance(current_state, str) or not isinstance(solution, str):
+            return jsonify({'error': 'Board state and solution must be strings'}), 400
             
+        if len(current_state) != 81 or len(solution) != 81:
+            return jsonify({'error': 'Invalid board size. Expected 81 characters'}), 400
+            
+        if not all(c in '0123456789' for c in current_state) or not all(c in '123456789' for c in solution):
+            return jsonify({'error': 'Invalid characters in board state or solution'}), 400
+            
+        app.logger.info(f"Processing hint request for board state")
         hint = analyze_hint_candidates(current_state, solution)
+        
         if not hint:
+            app.logger.info("No valid hints available for current board state")
             return jsonify({'error': 'No valid hints available'}), 404
             
         # Prepare hint message based on technique
@@ -38,18 +54,24 @@ def get_hint():
             'basic_elimination': 'Use basic elimination to find the correct number'
         }
         
-        return jsonify({
+        response_data = {
             'row': hint['row'],
             'col': hint['col'],
             'value': hint['value'],
             'technique': hint['technique'],
             'message': hint_messages.get(hint['technique'], 'Use elimination to solve this cell'),
             'related_cells': hint['related_cells']
-        })
+        }
         
+        app.logger.info(f"Hint found using technique: {hint['technique']}")
+        return jsonify(response_data)
+        
+    except ValueError as ve:
+        app.logger.error(f"Validation error in hint request: {str(ve)}")
+        return jsonify({'error': str(ve)}), 400
     except Exception as e:
-        print(f"Error generating hint: {str(e)}")
-        return jsonify({'error': 'Failed to generate hint'}), 500
+        app.logger.error(f"Error generating hint: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred while generating hint'}), 500
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():

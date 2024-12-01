@@ -250,39 +250,59 @@ class SudokuGame {
 
     async getHint() {
         try {
+            // Validate game state
+            if (!this.initialized) {
+                throw new Error('Game not initialized');
+            }
+
             if (this.gameState.remainingHints <= 0) {
-                this.showError('No hints remaining');
-                return;
+                throw new Error('No hints remaining');
             }
 
             if (this.isPaused) {
-                this.showError('Cannot get hint while game is paused');
-                return;
+                throw new Error('Cannot get hint while game is paused');
+            }
+
+            // Validate board state
+            if (!this.currentNumbers || !this.solution) {
+                throw new Error('Invalid game state');
+            }
+
+            const currentState = this.currentNumbers.join('');
+            if (currentState.length !== 81 || !/^[0-9]+$/.test(currentState)) {
+                throw new Error('Invalid board state');
             }
 
             // Clear any existing visualizations
             this.clearTechniqueVisualizations();
 
+            console.log('Requesting hint...');
             const response = await fetch('/hint', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    current_state: this.currentNumbers.join(''),
+                    current_state: currentState,
                     solution: this.solution
                 })
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
                 if (response.status === 404) {
-                    this.showError('No hints available');
-                    return;
+                    throw new Error(data.error || 'No hints available');
                 }
-                throw new Error('Failed to get hint');
+                throw new Error(data.error || 'Failed to get hint');
             }
 
-            const hint = await response.json();
+            // Validate hint response
+            if (!data.row || !data.col || !data.value || !data.technique) {
+                throw new Error('Invalid hint data received');
+            }
+
+            const hint = data;
             const index = hint.row * 9 + hint.col;
             const cell = document.querySelector(
                 `.cell[data-row="${hint.row}"][data-col="${hint.col}"]`
