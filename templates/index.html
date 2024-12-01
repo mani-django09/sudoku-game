@@ -5,29 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sudoku Game</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center mb-4">Sudoku</h1>
-        
-        <div class="controls">
-            <select id="difficulty" class="form-select" style="width: auto;">
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-            </select>
-            <button id="new-game" class="btn btn-primary">New Game</button>
-            <button id="pause" class="btn btn-secondary">Pause</button>
-            <div id="timer" class="ms-3">00:00:00</div>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="header-left">
+                <h1>Sudoku</h1>
+                <div class="difficulty-selector">
+                    <button class="mode-btn active">Easy</button>
+                    <button class="mode-btn">Medium</button>
+                    <button class="mode-btn">Hard</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="pause" class="icon-btn">
+                    <i data-feather="pause"></i>
+                </button>
+                <div id="timer" class="game-timer">00:00:00</div>
+            </div>
+        </header>
+
+        <div class="game-board-container">
+            <div id="sudoku-board"></div>
+            
+            <div class="game-controls">
+                <div class="control-buttons">
+                    <button class="icon-btn" id="undo">
+                        <i data-feather="rotate-ccw"></i>
+                    </button>
+                    <button class="icon-btn" id="redo">
+                        <i data-feather="rotate-cw"></i>
+                    </button>
+                    <button class="icon-btn" id="hint">
+                        <i data-feather="help-circle"></i>
+                    </button>
+                    <button class="icon-btn" id="pencil">
+                        <i data-feather="edit"></i>
+                    </button>
+                </div>
+                
+                <div id="numpad" class="numpad-grid"></div>
+            </div>
         </div>
 
-        <div id="sudoku-board"></div>
-        
-        <div id="numpad"></div>
+        <section class="how-to-play">
+            <h2>How to Play Sudoku</h2>
+            <p>Fill in the empty cells with numbers from 1 to 9. Each number must appear exactly once in each row, column, and 3x3 box.</p>
+        </section>
+
+        <div class="mobile-download">
+            <h3>Play Sudoku on Mobile</h3>
+            <div class="app-buttons">
+                <a href="#" class="app-button">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="Download on App Store">
+                </a>
+                <a href="#" class="app-button">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play">
+                </a>
+            </div>
+            <div class="qr-code">
+                <img src="data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100' height='100' fill='%23ffffff'/%3E%3C/svg%3E" alt="QR Code">
+            </div>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script>
+        feather.replace();
+    </script>
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sudoku.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 </body>
 </html>
