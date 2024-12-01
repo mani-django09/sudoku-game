@@ -326,8 +326,9 @@ class SudokuGame {
             // Visualize the solving technique
             await this.visualizeTechnique(hint);
             
-            // Show hint message after a short delay
+            // Show hint message and update UI after visualization
             setTimeout(() => {
+                // Create and show hint message
                 const hintMessage = document.createElement('div');
                 hintMessage.className = 'hint-message';
                 hintMessage.textContent = hint.message;
@@ -338,12 +339,12 @@ class SudokuGame {
                 cell.textContent = hint.value;
                 cell.classList.add('hint', 'hint-active');
                 cell.classList.add('hint-reveal');
+                
+                // Remove hint message after delay
+                setTimeout(() => {
+                    hintMessage.remove();
+                }, 3500);
             }, 1500); // Wait for visualization to complete
-            
-            // Remove hint message after delay
-            setTimeout(() => {
-                hintMessage.remove();
-            }, 5000);
             
             // Record move
             this.gameState.moves.splice(this.gameState.currentMove + 1);

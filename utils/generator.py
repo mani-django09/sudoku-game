@@ -74,27 +74,66 @@ def generate_puzzle(difficulty: str) -> Tuple[str, str]:
 
 def analyze_hint_candidates(current_state, solution):
     """Analyze the current state and find the best hint candidates with related cells"""
-    candidates = []
-    board = [list(current_state[i:i+9]) for i in range(0, 81, 9)]
-    solution_board = [list(solution[i:i+9]) for i in range(0, 81, 9)]
-    
-    for row in range(9):
-        for col in range(9):
-            if board[row][col] == '0':
-                impact_score = calculate_hint_impact(board, row, col, solution_board[row][col])
-                technique, related_cells = determine_solving_technique_with_cells(board, row, col, solution_board[row][col])
-                candidates.append({
-                    'row': row,
-                    'col': col,
-                    'value': solution_board[row][col],
-                    'impact_score': impact_score,
-                    'technique': technique,
-                    'related_cells': related_cells
-                })
-    
-    # Sort candidates by impact score and technique complexity
-    candidates.sort(key=lambda x: (-x['impact_score'], -len(x['technique'])))
-    return candidates[0] if candidates else None
+    try:
+        # Validate input parameters
+        if not isinstance(current_state, str) or not isinstance(solution, str):
+            raise ValueError("Current state and solution must be strings")
+        
+        if len(current_state) != 81 or len(solution) != 81:
+            raise ValueError("Current state and solution must be exactly 81 characters long")
+            
+        if not all(c in '0123456789' for c in current_state):
+            raise ValueError("Current state contains invalid characters")
+            
+        if not all(c in '123456789' for c in solution):
+            raise ValueError("Solution contains invalid characters")
+        
+        # Check if the puzzle is already solved
+        if current_state == solution:
+            return None
+            
+        candidates = []
+        board = [list(current_state[i:i+9]) for i in range(0, 81, 9)]
+        solution_board = [list(solution[i:i+9]) for i in range(0, 81, 9)]
+        
+        for row in range(9):
+            for col in range(9):
+                if board[row][col] == '0':
+                    try:
+                        impact_score = calculate_hint_impact(board, row, col, solution_board[row][col])
+                        technique, related_cells = determine_solving_technique_with_cells(board, row, col, solution_board[row][col])
+                        
+                        # Validate hint data
+                        if not isinstance(technique, str) or not related_cells:
+                            continue
+                            
+                        candidate = {
+                            'row': row,
+                            'col': col,
+                            'value': solution_board[row][col],
+                            'impact_score': impact_score,
+                            'technique': technique,
+                            'related_cells': related_cells
+                        }
+                        
+                        # Ensure all required fields are present
+                        if all(k in candidate for k in ['row', 'col', 'value', 'technique', 'related_cells']):
+                            candidates.append(candidate)
+                            
+                    except Exception as e:
+                        print(f"Error processing hint candidate at position ({row}, {col}): {str(e)}")
+                        continue
+        
+        if not candidates:
+            return None
+            
+        # Sort candidates by impact score and technique complexity
+        candidates.sort(key=lambda x: (-x['impact_score'], -len(x['technique'])))
+        return candidates[0]
+        
+    except Exception as e:
+        print(f"Error analyzing hint candidates: {str(e)}")
+        return None
 
 def calculate_hint_impact(board, row, col, value):
     """Calculate how impactful a hint would be based on surrounding empty cells"""
