@@ -120,6 +120,17 @@ class SudokuGame {
 
     async newGame(difficulty) {
         try {
+            // Validate difficulty
+            const validDifficulties = ['easy', 'medium', 'hard'];
+            if (!validDifficulties.includes(difficulty)) {
+                throw new Error(`Invalid difficulty level: ${difficulty}`);
+            }
+
+            // Update UI to show loading state
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            
             const response = await fetch(`/new-game/${difficulty}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch new game: ${response.statusText}`);
@@ -131,6 +142,15 @@ class SudokuGame {
                 data.puzzle.length !== 81 || data.solution.length !== 81) {
                 throw new Error('Invalid puzzle or solution data');
             }
+
+            // Update difficulty buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('active');
+                if (btn.dataset.difficulty === difficulty) {
+                    btn.classList.add('active');
+                }
+            });
             
             this.puzzle = data.puzzle;
             this.solution = data.solution;
@@ -429,10 +449,27 @@ class SudokuGame {
             hintButton.addEventListener('click', () => this.getHint());
         }
 
+        // Setup difficulty buttons
+        document.querySelectorAll('.mode-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                // Add active class to clicked button
+                e.target.classList.add('active');
+                // Start new game with selected difficulty
+                this.newGame(e.target.dataset.difficulty);
+            });
+        });
+
         // Setup New Game button
-        const newGameButton = document.querySelector('.new-game-btn');
+        const newGameButton = document.getElementById('new-game-btn');
         if (newGameButton) {
-            newGameButton.addEventListener('click', () => this.newGame('easy'));
+            newGameButton.addEventListener('click', () => {
+                const activeDifficulty = document.querySelector('.mode-btn.active');
+                this.newGame(activeDifficulty ? activeDifficulty.dataset.difficulty : 'easy');
+            });
         }
 
         // Update hint count display
