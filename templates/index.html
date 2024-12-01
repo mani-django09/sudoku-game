@@ -88,6 +88,29 @@
         </div>
     </div>
 
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <p class="copyright">&copy; <span id="current-year"></span> Sudoku Game. All rights reserved.</p>
+                <span class="version">v1.0.0</span>
+            </div>
+            <div class="footer-section">
+                <nav class="footer-links">
+                    <a href="#">About</a>
+                    <a href="#">Terms</a>
+                    <a href="#">Privacy</a>
+                </nav>
+            </div>
+            <div class="footer-section">
+                <div class="social-links">
+                    <a href="#" aria-label="Facebook"><i data-feather="facebook"></i></a>
+                    <a href="#" aria-label="Twitter"><i data-feather="twitter"></i></a>
+                    <a href="#" aria-label="Instagram"><i data-feather="instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <!-- Scripts loaded at the bottom for better performance -->
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
@@ -102,6 +125,8 @@
             try {
                 feather.replace();
                 console.log('Feather icons initialized successfully');
+                // Set current year in footer
+                document.getElementById('current-year').textContent = new Date().getFullYear();
             } catch (error) {
                 console.error('Failed to initialize Feather icons:', error);
             }
