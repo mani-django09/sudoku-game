@@ -7,3 +7,11 @@ class Game(db.Model):
     solution = db.Column(db.String(81), nullable=False)
     difficulty = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class DailyPuzzle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    puzzle_date = db.Column(db.Date, nullable=False, unique=True)
+    puzzle = db.Column(db.String(81), nullable=False)
+    solution = db.Column(db.String(81), nullable=False)
+    difficulty = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

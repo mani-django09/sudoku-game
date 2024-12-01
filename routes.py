@@ -65,35 +65,32 @@ def contact():
 
 @app.route('/daily-challenge')
 def daily_challenge():
+    from models import DailyPuzzle
+    from utils.generator import generate_puzzle
+    
     today = datetime.now().date()
     
     # Try to get today's puzzle from the database
-    result = execute_sql_tool(f"""
-        SELECT puzzle, solution, difficulty 
-        FROM daily_puzzles 
-        WHERE puzzle_date = '{today}'
-    """)
+    daily_puzzle = DailyPuzzle.query.filter_by(puzzle_date=today).first()
     
-    if not result:
+    if not daily_puzzle:
         # Generate a new puzzle with random difficulty
         difficulty = random.choice(['easy', 'medium', 'hard'])
         puzzle, solution = generate_puzzle(difficulty)
         
-        # Store the puzzle in the database
-        execute_sql_tool(f"""
-            INSERT INTO daily_puzzles (puzzle_date, puzzle, solution, difficulty)
-            VALUES ('{today}', '{puzzle}', '{solution}', '{difficulty}')
-        """)
-    else:
-        puzzle = result[0][0]
-        solution = result[0][1]
-        difficulty = result[0][2]
+        # Create new daily puzzle
+        daily_puzzle = DailyPuzzle(
+            puzzle_date=today,
+            puzzle=puzzle,
+            solution=solution,
+            difficulty=difficulty
+        )
+        db.session.add(daily_puzzle)
+        db.session.commit()
     
     return jsonify({
-        'puzzle': puzzle,
-        'solution': solution,
-        'difficulty': difficulty,
-        'date': today.strftime('%Y-%m-%d')
+        'puzzle': daily_puzzle.puzzle,
+        'solution': daily_puzzle.solution,
+        'difficulty': daily_puzzle.difficulty,
+        'date': daily_puzzle.puzzle_date.strftime('%Y-%m-%d')
     })
-        
-    return render_template('contact.html')
