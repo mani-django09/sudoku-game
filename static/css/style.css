@@ -308,6 +308,41 @@ body {
     color: transparent;
 }
 
+/* Error Message Styling */
+.game-error {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ea4335;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    z-index: 1000;
+    animation: slideDown 0.3s ease-out;
+}
+
+.cell.error {
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     :root {

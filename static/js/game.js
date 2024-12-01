@@ -198,6 +198,11 @@ class SudokuGame {
         console.log('Attempting to enter number:', num);
         
         try {
+            // Type checking and validation
+            if (!Number.isInteger(num) || num < 1 || num > 9) {
+                throw new Error(`Invalid number: ${num}. Must be an integer between 1 and 9.`);
+            }
+
             if (!this.selectedCell) {
                 console.log('No cell selected');
                 return;
@@ -208,13 +213,27 @@ class SudokuGame {
                 return;
             }
 
+            // Validate cell data
             const row = parseInt(this.selectedCell.dataset.row);
             const col = parseInt(this.selectedCell.dataset.col);
+            if (isNaN(row) || isNaN(col) || row < 0 || row >= 9 || col < 0 || col >= 9) {
+                throw new Error(`Invalid cell coordinates: row=${row}, col=${col}`);
+            }
+
             const index = row * 9 + col;
+            console.log('Current game state:', {
+                row,
+                col,
+                index,
+                isPencilMode: this.pencilMode,
+                currentValue: this.currentNumbers[index],
+                isInitialCell: this.puzzle[index] !== '0'
+            });
 
             // Check if cell is part of initial puzzle
             if (this.puzzle[index] !== '0') {
                 console.log('Cannot modify initial puzzle cell');
+                this.showError('Cannot modify initial numbers');
                 return;
             }
 
@@ -224,13 +243,23 @@ class SudokuGame {
                 return;
             }
 
-            // Update current numbers array and display
+            // Update current numbers array and validate
+            if (!Array.isArray(this.currentNumbers) || this.currentNumbers.length !== 81) {
+                throw new Error('Invalid game state: currentNumbers array is corrupted');
+            }
+
+            // Update display and array
             this.currentNumbers[index] = num.toString();
             this.selectedCell.textContent = num;
 
             // Clear pencil marks when entering a number
-            this.pencilMarks[index].clear();
-            this.selectedCell.querySelector('.pencil-marks').innerHTML = '';
+            if (this.pencilMarks[index]) {
+                this.pencilMarks[index].clear();
+                const pencilMarksContainer = this.selectedCell.querySelector('.pencil-marks');
+                if (pencilMarksContainer) {
+                    pencilMarksContainer.innerHTML = '';
+                }
+            }
 
             // Validate move and check win condition
             this.validateMove(row, col, num);
@@ -239,6 +268,7 @@ class SudokuGame {
             console.log('Number entered successfully');
         } catch (error) {
             console.error('Error in enterNumber:', error);
+            this.showError(error.message);
         }
     }
 
@@ -339,6 +369,29 @@ class SudokuGame {
                 cell.classList.remove('initial');
             }
         });
+    }
+
+    showError(message) {
+        console.error('Game error:', message);
+        
+        // Add error class to selected cell
+        if (this.selectedCell) {
+            this.selectedCell.classList.add('error');
+            setTimeout(() => {
+                this.selectedCell.classList.remove('error');
+            }, 1500);
+        }
+
+        // Optional: Show error message to user
+        // You could create a toast/notification system here
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'game-error';
+        errorDiv.textContent = message;
+        document.querySelector('.game-container').appendChild(errorDiv);
+        
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 3000);
     }
 }
 
