@@ -193,6 +193,57 @@ def contact():
         return redirect(url_for('contact'))
     return render_template('contact.html')
 
+@app.after_request
+def add_header(response):
+    """Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes."""
+    response.headers['X-UA-Compatible'] = 'IE=Edge,chrome=1'
+    if 'Cache-Control' not in response.headers:
+        response.headers['Cache-Control'] = 'public, max-age=600'
+    return response
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """Generate sitemap.xml dynamically."""
+    from datetime import datetime
+    pages = []
+    ten_days_ago = datetime.now().date().isoformat()
+    
+    # Add all important pages
+    pages.append({
+        'loc': url_for('index', _external=True),
+        'lastmod': ten_days_ago,
+        'changefreq': 'daily',
+        'priority': '1.0'
+    })
+    
+    pages.append({
+        'loc': url_for('terms', _external=True),
+        'lastmod': ten_days_ago,
+        'changefreq': 'monthly',
+        'priority': '0.6'
+    })
+    
+    pages.append({
+        'loc': url_for('privacy', _external=True),
+        'lastmod': ten_days_ago,
+        'changefreq': 'monthly',
+        'priority': '0.6'
+    })
+    
+    pages.append({
+        'loc': url_for('contact', _external=True),
+        'lastmod': ten_days_ago,
+        'changefreq': 'monthly',
+        'priority': '0.7'
+    })
+    
+    sitemap_xml = render_template('sitemap.xml', pages=pages)
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    
+    return response
+
 
 @app.route('/terms')
 def terms():
