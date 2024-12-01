@@ -20,6 +20,17 @@ def new_game(difficulty):
 @app.route('/hint', methods=['POST'])
 def get_hint():
     try:
+        # Define hint messages at the start
+        hint_messages = {
+            'single_candidate': 'This cell has only one possible number based on the current state',
+            'hidden_single': 'This number can only go in this specific position within its group',
+            'basic_elimination': 'Use basic elimination rules to find the correct number',
+            'naked_pair': 'Two cells in this group can only contain the same two numbers',
+            'hidden_pair': 'These two numbers can only appear in these two cells',
+            'pointing_pair': 'These two cells force this number to be in a specific position',
+            'box_line_reduction': 'This number must be in this line within this box'
+        }
+
         # Get and validate request data
         data = request.get_json()
         request_id = request.headers.get('X-Request-ID', 'unknown')
@@ -133,16 +144,7 @@ def get_hint():
                 'details': '; '.join(validation_errors)
             }), 500
             
-        # Prepare hint message based on technique with validation
-        hint_messages = {
-            'single_candidate': 'This cell has only one possible number based on the current state',
-            'hidden_single': 'This number can only go in this specific position within its group',
-            'basic_elimination': 'Use basic elimination rules to find the correct number',
-            'naked_pair': 'Two cells in this group can only contain the same two numbers',
-            'hidden_pair': 'These two numbers can only appear in these two cells',
-            'pointing_pair': 'These two cells force this number to be in a specific position',
-            'box_line_reduction': 'This number must be in this line within this box'
-        }
+        # Validate hint technique
         
         if hint['technique'] not in hint_messages:
             app.logger.error(f"[{request_id}] Unknown technique: {hint['technique']}")
