@@ -541,6 +541,47 @@ body {
     .social-links {
         justify-content: center;
     }
+/* New sections styling */
+.intro-section, .about-sudoku, .how-to-play, .sudoku-tips {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.intro-section h1, .about-sudoku h2, .how-to-play h2, .sudoku-tips h2 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+}
+
+.intro-section p, .about-sudoku p, .how-to-play p, .sudoku-tips p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.how-to-play ul, .sudoku-tips ul {
+    list-style-type: disc;
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.how-to-play li, .sudoku-tips li {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .intro-section, .about-sudoku, .how-to-play, .sudoku-tips {
+        margin: 1rem auto;
+    }
+
+    .intro-section h1, .about-sudoku h2, .how-to-play h2, .sudoku-tips h2 {
+        font-size: 1.5rem;
+    }
+}
 }
 
 /* Contact Form Styles */
