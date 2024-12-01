@@ -248,7 +248,8 @@ class SudokuGame {
         pencilMarksDiv.appendChild(grid);
     }
 
-    async getHint() {
+    async getHint(retryCount = 0) {
+        let hintMessage = null;
         try {
             // Validate game state
             if (!this.initialized) {
@@ -273,8 +274,9 @@ class SudokuGame {
                 throw new Error('Invalid board state');
             }
 
-            // Clear any existing visualizations
+            // Clear any existing visualizations, error messages, and hint messages
             this.clearTechniqueVisualizations();
+            document.querySelectorAll('.game-error, .hint-message, .hint-overlay').forEach(el => el.remove());
 
             console.log('Requesting hint...');
             const response = await fetch('/hint', {
@@ -294,12 +296,45 @@ class SudokuGame {
                 if (response.status === 404) {
                     throw new Error(data.error || 'No hints available');
                 }
+                // If it's a server error and we haven't exceeded retry attempts
+                if (response.status === 500 && retryCount < 2) {
+                    console.log(`Retrying hint request (attempt ${retryCount + 1})...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return this.getHint(retryCount + 1);
+                }
                 throw new Error(data.error || 'Failed to get hint');
             }
 
             // Validate hint response
-            if (!data.row || !data.col || !data.value || !data.technique) {
-                throw new Error('Invalid hint data received');
+            const requiredFields = ['row', 'col', 'value', 'technique', 'related_cells', 'message'];
+            const missingFields = requiredFields.filter(field => !data[field]);
+            
+            if (missingFields.length > 0) {
+                throw new Error(`Invalid hint data: missing ${missingFields.join(', ')}`);
+            }
+
+            // Validate hint message
+            if (typeof data.message !== 'string' || !data.message.trim()) {
+                throw new Error('Invalid hint message format');
+            }
+
+            // Validate data types and ranges
+            if (!Number.isInteger(data.row) || data.row < 0 || data.row > 8 ||
+                !Number.isInteger(data.col) || data.col < 0 || data.col > 8 ||
+                !/^[1-9]$/.test(data.value) ||
+                !Array.isArray(data.related_cells)) {
+                throw new Error('Invalid hint data format');
+            }
+
+            // Validate related cells format
+            if (!data.related_cells.every(cell => 
+                typeof cell === 'object' &&
+                Number.isInteger(cell.row) &&
+                Number.isInteger(cell.col) &&
+                cell.row >= 0 && cell.row < 9 &&
+                cell.col >= 0 && cell.col < 9
+            )) {
+                throw new Error('Invalid related cells format');
             }
 
             const hint = data;
@@ -323,28 +358,22 @@ class SudokuGame {
             this.pencilMarks[index].clear();
             this.renderPencilMarks(index);
 
+            // Create hint message element
+            hintMessage = document.createElement('div');
+            hintMessage.className = 'hint-message';
+            hintMessage.textContent = hint.message;
+            document.querySelector('.game-container').appendChild(hintMessage);
+
             // Visualize the solving technique
             await this.visualizeTechnique(hint);
             
-            // Show hint message and update UI after visualization
+            // Update number and UI after visualization
             setTimeout(() => {
-                // Create and show hint message
-                const hintMessage = document.createElement('div');
-                hintMessage.className = 'hint-message';
-                hintMessage.textContent = hint.message;
-                document.querySelector('.game-container').appendChild(hintMessage);
-                
-                // Update number and UI
                 this.currentNumbers[index] = hint.value;
                 cell.textContent = hint.value;
                 cell.classList.add('hint', 'hint-active');
                 cell.classList.add('hint-reveal');
-                
-                // Remove hint message after delay
-                setTimeout(() => {
-                    hintMessage.remove();
-                }, 3500);
-            }, 1500); // Wait for visualization to complete
+            }, 1500);
             
             // Record move
             this.gameState.moves.splice(this.gameState.currentMove + 1);
@@ -359,10 +388,13 @@ class SudokuGame {
             });
             this.gameState.currentMove++;
 
-            // Remove hint highlight after animation
+            // Remove hint highlight and message after animation
             setTimeout(() => {
                 cell.classList.remove('hint-reveal', 'hint-active');
-            }, 1500);
+                if (hintMessage && hintMessage.parentNode) {
+                    hintMessage.remove();
+                }
+            }, 3000);
 
             // Decrement hint count
             this.gameState.remainingHints--;
@@ -374,6 +406,10 @@ class SudokuGame {
         } catch (error) {
             console.error('Error getting hint:', error);
             this.showError('Failed to get hint: ' + error.message);
+            // Clean up hint message if there was an error
+            if (hintMessage && hintMessage.parentNode) {
+                hintMessage.remove();
+            }
         }
     }
 
@@ -834,18 +870,21 @@ class SudokuGame {
                 'hint-elimination',
                 'hint-single',
                 'hint-hidden-single',
-                'hint-highlight'
+                'hint-highlight',
+                'hint-pair',
+                'hint-affected'
             );
         });
     }
 
     async visualizeTechnique(hint) {
         return new Promise((resolve) => {
-            const { row, col, technique, related_cells = [] } = hint;
+            const { row, col, technique, related_cells = [], message } = hint;
             const index = row * 9 + col;
             const mainCell = document.querySelector(`.cell[data-index="${index}"]`);
             
             if (!mainCell) {
+                console.error('Main cell not found for visualization');
                 resolve();
                 return;
             }
@@ -853,49 +892,104 @@ class SudokuGame {
             // Clear any existing visualizations
             this.clearTechniqueVisualizations();
 
+            // Create hint message overlay
+            const hintOverlay = document.createElement('div');
+            hintOverlay.className = 'hint-overlay';
+            hintOverlay.textContent = message;
+            document.querySelector('.game-container').appendChild(hintOverlay);
+
+            let delay = 0; // Common delay variable for all animations
+
             // Add visualization based on technique
             switch (technique) {
                 case 'single_candidate':
                     mainCell.classList.add('hint-single');
+                    // Animate related cells sequentially
                     related_cells.forEach(({ row, col }) => {
                         const relatedIndex = row * 9 + col;
                         const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
                         if (relatedCell) {
-                            relatedCell.classList.add('hint-elimination');
+                            setTimeout(() => {
+                                relatedCell.classList.add('hint-elimination');
+                                relatedCell.classList.add('hint-highlight');
+                            }, delay);
+                            delay += 200;
                         }
                     });
                     break;
 
                 case 'hidden_single':
                     mainCell.classList.add('hint-hidden-single');
+                    // Group visualization
                     related_cells.forEach(({ row, col }) => {
                         const relatedIndex = row * 9 + col;
                         const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
                         if (relatedCell) {
                             relatedCell.classList.add('hint-related');
+                            setTimeout(() => {
+                                relatedCell.classList.add('hint-highlight');
+                            }, 300);
                         }
                     });
                     break;
 
-                case 'basic_elimination':
+                case 'naked_pair':
+                case 'hidden_pair':
+                    mainCell.classList.add('hint-pair');
+                    related_cells.forEach(({ row, col, type }) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                relatedCell.classList.add(type === 'pair' ? 'hint-pair' : 'hint-affected');
+                                relatedCell.classList.add('hint-highlight');
+                            }, delay);
+                            delay += 200;
+                        }
+                    });
+                    break;
+
+                case 'pointing_pair':
+                case 'box_line_reduction':
+                    mainCell.classList.add('hint-pair');
+                    related_cells.forEach(({ row, col, type }) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                relatedCell.classList.add(type === 'pair' ? 'hint-pair' : 'hint-affected');
+                                relatedCell.classList.add('hint-highlight');
+                            }, delay);
+                            delay += 200;
+                        }
+                    });
+                    break;
+
+                default:
+                    // Basic elimination for unknown techniques
                     mainCell.classList.add('hint-candidate');
                     related_cells.forEach(({ row, col }) => {
                         const relatedIndex = row * 9 + col;
                         const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
                         if (relatedCell) {
-                            relatedCell.classList.add('hint-related');
+                            setTimeout(() => {
+                                relatedCell.classList.add('hint-related');
+                                relatedCell.classList.add('hint-highlight');
+                            }, delay);
+                            delay += 150;
                         }
                     });
                     break;
             }
 
-            // Animate the visualization
+            // Animate the main cell
             mainCell.classList.add('hint-highlight');
             
-            // Resolve after animation completes
+            // Cleanup and resolve after all animations
             setTimeout(() => {
+                hintOverlay.remove();
                 resolve();
-            }, 1500);
+            }, Math.max(2000, delay + 500)); // Ensure overlay stays visible long enough
         });
     }
 }

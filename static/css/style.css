@@ -427,16 +427,19 @@ body {
 .cell.hint-single {
     background-color: rgba(76, 175, 80, 0.1);
     border: 2px solid #4CAF50;
+    animation: highlight-pulse 1s ease-in-out;
 }
 
 .cell.hint-hidden-single {
     background-color: rgba(156, 39, 176, 0.1);
     border: 2px solid #9C27B0;
+    animation: highlight-pulse 1s ease-in-out;
 }
 
 .cell.hint-elimination {
     background-color: rgba(244, 67, 54, 0.1);
     border: 1px dashed #F44336;
+    animation: fade-in-out 1.5s infinite;
 }
 
 .cell.hint-related {
@@ -444,20 +447,65 @@ body {
     border: 1px dashed #FFC107;
 }
 
+.cell.hint-pair {
+    background-color: rgba(0, 150, 136, 0.1);
+    border: 2px solid #009688;
+    animation: highlight-pulse 1s ease-in-out;
+}
+
+.cell.hint-affected {
+    background-color: rgba(121, 85, 72, 0.1);
+    border: 1px dotted #795548;
+}
+
 .cell.hint-highlight {
     animation: highlight-pulse 1s ease-in-out;
 }
 
+.hint-overlay {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(33, 33, 33, 0.9);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    z-index: 1000;
+    font-size: 14px;
+    max-width: 80%;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    animation: fade-in 0.3s ease-out;
+}
+
 @keyframes highlight-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
 }
 
 @keyframes pulse {
     0% { opacity: 1; }
     50% { opacity: 0.6; }
     100% { opacity: 1; }
+}
+
+@keyframes fade-in-out {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
 }
     animation: slideDown 0.3s ease-out;
 

@@ -22,17 +22,26 @@ def get_hint():
     try:
         # Get and validate request data
         data = request.get_json()
+        request_id = request.headers.get('X-Request-ID', 'unknown')
+        app.logger.info(f"[{request_id}] Processing hint request")
+        
         if not data:
-            app.logger.error("Hint request received with no data")
-            return jsonify({'error': 'No data provided', 'details': 'Request body is empty'}), 400
+            app.logger.error(f"[{request_id}] Hint request received with no data")
+            return jsonify({
+                'error': 'No data provided',
+                'details': 'Request body is empty'
+            }), 400
 
-        # Extract required fields
+        # Extract and validate required fields
         current_state = data.get('current_state')
         solution = data.get('solution')
         
-        # Detailed input validation
+        # Log request details (excluding solution for security)
+        app.logger.info(f"[{request_id}] Request details - Current state length: {len(current_state) if current_state else 'None'}")
+        
+        # Detailed input validation with improved logging
         if not current_state or not solution:
-            app.logger.error(f"Missing required fields: current_state={'Yes' if current_state else 'No'}, solution={'Yes' if solution else 'No'}")
+            app.logger.error(f"[{request_id}] Missing required fields: current_state={'Yes' if current_state else 'No'}, solution={'Yes' if solution else 'No'}")
             return jsonify({
                 'error': 'Missing required fields',
                 'details': 'Both current_state and solution are required'
@@ -40,7 +49,7 @@ def get_hint():
         
         # Type validation
         if not isinstance(current_state, str) or not isinstance(solution, str):
-            app.logger.error(f"Invalid data types: current_state={type(current_state)}, solution={type(solution)}")
+            app.logger.error(f"[{request_id}] Invalid data types: current_state={type(current_state)}, solution={type(solution)}")
             return jsonify({
                 'error': 'Invalid data types',
                 'details': 'Both current_state and solution must be strings'
@@ -48,75 +57,122 @@ def get_hint():
             
         # Length validation
         if len(current_state) != 81 or len(solution) != 81:
-            app.logger.error(f"Invalid length: current_state={len(current_state)}, solution={len(solution)}")
+            app.logger.error(f"[{request_id}] Invalid length: current_state={len(current_state)}, solution={len(solution)}")
             return jsonify({
                 'error': 'Invalid board size',
                 'details': 'Both current_state and solution must be exactly 81 characters long'
             }), 400
             
-        # Character validation
-        if not all(c in '0123456789' for c in current_state):
-            app.logger.error("Invalid characters in current_state")
+        # Character validation with detailed error reporting
+        invalid_chars_current = set(c for c in current_state if c not in '0123456789')
+        if invalid_chars_current:
+            app.logger.error(f"[{request_id}] Invalid characters in current_state: {invalid_chars_current}")
             return jsonify({
                 'error': 'Invalid characters',
-                'details': 'Current state can only contain digits 0-9'
+                'details': f'Current state contains invalid characters: {", ".join(invalid_chars_current)}'
             }), 400
             
-        if not all(c in '123456789' for c in solution):
-            app.logger.error("Invalid characters in solution")
+        invalid_chars_solution = set(c for c in solution if c not in '123456789')
+        if invalid_chars_solution:
+            app.logger.error(f"[{request_id}] Invalid characters in solution: {invalid_chars_solution}")
             return jsonify({
                 'error': 'Invalid characters',
-                'details': 'Solution can only contain digits 1-9'
+                'details': f'Solution contains invalid characters: {", ".join(invalid_chars_solution)}'
             }), 400
             
-        app.logger.info("Processing hint request for board state")
+        # Validate solution consistency
+        zero_positions = [i for i, c in enumerate(current_state) if c != '0']
+        for pos in zero_positions:
+            if current_state[pos] != solution[pos]:
+                app.logger.error(f"[{request_id}] Solution inconsistency at position {pos}")
+                return jsonify({
+                    'error': 'Invalid board state',
+                    'details': 'Current state conflicts with solution'
+                }), 400
+            
+        app.logger.info(f"[{request_id}] Input validation passed, analyzing hint candidates")
         hint = analyze_hint_candidates(current_state, solution)
         
         if not hint:
-            app.logger.info("No valid hints available for current board state")
+            app.logger.info(f"[{request_id}] No valid hints available for current board state")
             return jsonify({
                 'error': 'No hints available',
                 'details': 'No valid hints could be generated for the current board state'
             }), 404
             
-        # Validate hint response
-        required_fields = ['row', 'col', 'value', 'technique', 'related_cells']
-        missing_fields = [field for field in required_fields if field not in hint]
-        if missing_fields:
-            app.logger.error(f"Invalid hint response, missing fields: {missing_fields}")
+        # Enhanced hint response validation
+        required_fields = {
+            'row': (int, lambda x: 0 <= x < 9),
+            'col': (int, lambda x: 0 <= x < 9),
+            'value': (str, lambda x: x in '123456789'),
+            'technique': (str, lambda x: x in hint_messages),
+            'related_cells': (list, lambda x: all(
+                isinstance(cell, dict) and
+                all(k in cell for k in ['row', 'col']) and
+                isinstance(cell['row'], int) and
+                isinstance(cell['col'], int) and
+                0 <= cell['row'] < 9 and
+                0 <= cell['col'] < 9
+                for cell in x
+            ))
+        }
+        
+        validation_errors = []
+        for field, (expected_type, validator) in required_fields.items():
+            if field not in hint:
+                validation_errors.append(f"Missing field: {field}")
+            elif not isinstance(hint[field], expected_type):
+                validation_errors.append(f"Invalid type for {field}: expected {expected_type.__name__}")
+            elif not validator(hint[field]):
+                validation_errors.append(f"Invalid value for {field}")
+        
+        if validation_errors:
+            app.logger.error(f"[{request_id}] Hint validation errors: {validation_errors}")
             return jsonify({
                 'error': 'Invalid hint data',
-                'details': f'Hint response missing required fields: {", ".join(missing_fields)}'
+                'details': '; '.join(validation_errors)
             }), 500
             
-        # Prepare hint message based on technique
+        # Prepare hint message based on technique with validation
         hint_messages = {
             'single_candidate': 'This cell has only one possible number based on the current state',
             'hidden_single': 'This number can only go in this specific position within its group',
-            'basic_elimination': 'Use basic elimination rules to find the correct number'
+            'basic_elimination': 'Use basic elimination rules to find the correct number',
+            'naked_pair': 'Two cells in this group can only contain the same two numbers',
+            'hidden_pair': 'These two numbers can only appear in these two cells',
+            'pointing_pair': 'These two cells force this number to be in a specific position',
+            'box_line_reduction': 'This number must be in this line within this box'
         }
+        
+        if hint['technique'] not in hint_messages:
+            app.logger.error(f"[{request_id}] Unknown technique: {hint['technique']}")
+            return jsonify({
+                'error': 'Invalid technique',
+                'details': f"Unknown solving technique: {hint['technique']}"
+            }), 500
         
         response_data = {
             'row': hint['row'],
             'col': hint['col'],
             'value': hint['value'],
             'technique': hint['technique'],
-            'message': hint_messages.get(hint['technique'], 'Use elimination to solve this cell'),
+            'message': hint_messages[hint['technique']],
             'related_cells': hint['related_cells']
         }
         
-        app.logger.info(f"Hint found using technique: {hint['technique']}")
-        app.logger.debug(f"Full hint response: {response_data}")
+        app.logger.info(f"[{request_id}] Hint generated successfully using technique: {hint['technique']}")
+        app.logger.debug(f"[{request_id}] Full hint response: {response_data}")
         return jsonify(response_data)
         
     except ValueError as ve:
-        app.logger.error(f"Validation error in hint request: {str(ve)}")
+        app.logger.error(f"[{request_id}] Validation error in hint request: {str(ve)}")
         return jsonify({
             'error': 'Validation error',
             'details': str(ve)
         }), 400
     except Exception as e:
-        app.logger.error(f"Unexpected error in hint request: {str(e)}")
+        app.logger.error(f"[{request_id}] Unexpected error in hint request: {str(e)}")
+        app.logger.exception("Detailed error traceback:")
         return jsonify({
             'error': 'Internal server error',
             'details': 'An unexpected error occurred while processing the hint request'
