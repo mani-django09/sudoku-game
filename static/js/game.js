@@ -1,5 +1,8 @@
 class SudokuGame {
     constructor() {
+        console.log('Initializing SudokuGame...');
+        
+        // Initialize game state
         this.selectedCell = null;
         this.puzzle = null;
         this.solution = null;
@@ -13,13 +16,25 @@ class SudokuGame {
         
         // Initialize timer with error handling
         try {
+            const timerElement = document.getElementById('timer');
+            if (!timerElement) {
+                throw new Error('Timer element not found');
+            }
             this.timer = new Timer();
+            console.log('Timer initialized successfully');
         } catch (error) {
             console.error('Failed to initialize timer:', error);
             throw new Error('Timer initialization failed');
         }
         
-        this.initializeGame();
+        // Initialize game components
+        try {
+            this.initializeGame();
+            console.log('Game initialization completed');
+        } catch (error) {
+            console.error('Game initialization failed:', error);
+            throw error;
+        }
     }
 
     initializeGame() {
@@ -30,31 +45,49 @@ class SudokuGame {
     }
 
     setupBoard() {
+        console.log('Setting up game board...');
+        
+        // Get board element with error handling
         const board = document.getElementById('sudoku-board');
         if (!board) {
             throw new Error('Sudoku board element not found');
         }
+        
+        // Clear existing content
+        board.innerHTML = '';
+        console.log('Board cleared, creating cells...');
 
-        for (let i = 0; i < 9; i++) {
-            for (let j = 0; j < 9; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.row = i;
-                cell.dataset.col = j;
-                cell.dataset.index = i * 9 + j;
-                
-                // Add pencil marks container
-                const pencilMarks = document.createElement('div');
-                pencilMarks.className = 'pencil-marks';
-                cell.appendChild(pencilMarks);
-                
-                cell.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.selectCell(cell);
-                });
-                
-                board.appendChild(cell);
+        try {
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.dataset.index = i * 9 + j;
+                    
+                    // Add pencil marks container
+                    const pencilMarks = document.createElement('div');
+                    pencilMarks.className = 'pencil-marks';
+                    cell.appendChild(pencilMarks);
+                    
+                    // Add click event with error handling
+                    cell.addEventListener('click', (e) => {
+                        try {
+                            e.preventDefault();
+                            this.selectCell(cell);
+                        } catch (error) {
+                            console.error('Error handling cell click:', error);
+                        }
+                    });
+                    
+                    board.appendChild(cell);
+                }
             }
+            console.log('Board setup completed successfully');
+        } catch (error) {
+            console.error('Error setting up board:', error);
+            throw new Error('Failed to setup game board');
         }
     }
 

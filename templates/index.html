@@ -71,7 +71,7 @@
         </div>
     </div>
 
-    <!-- Move all scripts to the bottom for better page load performance -->
+    <!-- Scripts loaded at the bottom for better performance -->
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sudoku.js') }}"></script>
@@ -79,19 +79,43 @@
     <script>
         // Initialize everything after DOM is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded, initializing game...');
+            
             // Initialize Feather icons
-            feather.replace();
+            try {
+                feather.replace();
+                console.log('Feather icons initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize Feather icons:', error);
+            }
             
             // Initialize game after ensuring all elements are loaded
             try {
+                // Verify required elements exist before initialization
+                const requiredElements = [
+                    'sudoku-board',
+                    'numpad',
+                    'timer',
+                    'pause'
+                ];
+                
+                const missingElements = requiredElements.filter(id => !document.getElementById(id));
+                if (missingElements.length > 0) {
+                    throw new Error(`Missing required elements: ${missingElements.join(', ')}`);
+                }
+                
                 window.game = new SudokuGame();
+                console.log('Game initialized successfully');
             } catch (error) {
                 console.error('Failed to initialize game:', error);
                 // Show user-friendly error message
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'error-message';
                 errorDiv.textContent = 'Failed to load the game. Please refresh the page.';
-                document.querySelector('.game-container').prepend(errorDiv);
+                const container = document.querySelector('.game-container');
+                if (container) {
+                    container.prepend(errorDiv);
+                }
             }
         });
     </script>
