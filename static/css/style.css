@@ -132,23 +132,34 @@ body {
 /* Pencil marks styling */
 .pencil-marks {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 2px;
+    left: 2px;
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
     pointer-events: none;
+    gap: 1px;
 }
 
 .pencil-mark {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     color: #666;
     font-weight: normal;
+    line-height: 1;
+}
+
+.icon-btn.active {
+    background-color: var(--selected-color);
+    border-color: #4285f4;
+}
+
+.icon-btn.active svg {
+    stroke: #4285f4;
 }
 
 .cell.selected {

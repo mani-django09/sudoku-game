@@ -120,6 +120,19 @@ class SudokuGame {
         if (pauseButton) {
             pauseButton.addEventListener('click', () => this.togglePause());
         }
+
+        // Setup pencil mode button
+        const pencilButton = document.getElementById('pencil');
+        if (pencilButton) {
+            pencilButton.addEventListener('click', () => {
+                console.log('Toggling pencil mode');
+                this.pencilMode = !this.pencilMode;
+                pencilButton.classList.toggle('active');
+                console.log('Pencil mode:', this.pencilMode ? 'active' : 'inactive');
+            });
+        } else {
+            console.error('Pencil button not found');
+        }
     }
 
     setupKeyboardInput() {
@@ -230,29 +243,57 @@ class SudokuGame {
     }
 
     togglePencilMark(index, num) {
-        console.log('Toggling pencil mark:', num);
+        console.log('Toggling pencil mark:', num, 'at index:', index);
         
         try {
-            const pencilMarksContainer = this.selectedCell.querySelector('.pencil-marks');
-            
-            if (this.pencilMarks[index].has(num)) {
-                this.pencilMarks[index].delete(num);
-            } else {
-                this.pencilMarks[index].add(num);
+            // Validate inputs
+            if (index < 0 || index >= 81 || num < 1 || num > 9) {
+                throw new Error('Invalid index or number for pencil mark');
             }
 
-            // Update display
+            const pencilMarksContainer = this.selectedCell.querySelector('.pencil-marks');
+            if (!pencilMarksContainer) {
+                throw new Error('Pencil marks container not found');
+            }
+
+            // Create Set if it doesn't exist
+            if (!this.pencilMarks[index]) {
+                this.pencilMarks[index] = new Set();
+            }
+
+            // Toggle the number
+            const hasNumber = this.pencilMarks[index].has(num);
+            console.log('Current pencil marks:', Array.from(this.pencilMarks[index]));
+            
+            if (hasNumber) {
+                this.pencilMarks[index].delete(num);
+                console.log('Removed pencil mark:', num);
+            } else {
+                this.pencilMarks[index].add(num);
+                console.log('Added pencil mark:', num);
+            }
+
+            // Clear and update display
             pencilMarksContainer.innerHTML = '';
+            const grid = document.createElement('div');
+            grid.className = 'pencil-marks-grid';
+
+            // Create all 9 positions
             for (let i = 1; i <= 9; i++) {
                 const mark = document.createElement('div');
                 mark.className = 'pencil-mark';
-                mark.textContent = this.pencilMarks[index].has(i) ? i : '';
+                if (this.pencilMarks[index].has(i)) {
+                    mark.textContent = i;
+                }
                 pencilMarksContainer.appendChild(mark);
             }
 
-            console.log('Pencil mark toggled successfully');
+            console.log('Pencil marks updated:', Array.from(this.pencilMarks[index]));
         } catch (error) {
             console.error('Error in togglePencilMark:', error);
+            // Show user feedback if needed
+            this.selectedCell.classList.add('error');
+            setTimeout(() => this.selectedCell.classList.remove('error'), 1000);
         }
     }
 
