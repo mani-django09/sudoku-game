@@ -1,15 +1,16 @@
 :root {
-    --cell-size: 60px;
+    --cell-size: 62px;
     --primary-color: #1a1a1a;
     --border-color: #e0e0e0;
-    --border-dark: #404040;
+    --border-dark: #666666;
     --highlight-color: #f6f6f6;
     --selected-color: #e8f0fe;
     --related-color: #f3f6fe;
     --invalid-color: #ffe6e6;
     --valid-color: #e6ffe6;
-    --grid-border: 2px solid var(--border-dark);
+    --grid-border: 2.5px solid var(--border-dark);
     --cell-border: 1px solid var(--border-color);
+    --cell-padding: 2px;
 }
 
 body {
@@ -84,6 +85,9 @@ body {
     border: var(--grid-border);
     background-color: white;
     position: relative;
+    gap: 0;
+    padding: var(--cell-padding);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .cell {
@@ -93,22 +97,36 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
-    font-weight: 400;
+    font-size: 32px;
+    font-weight: 500;
     cursor: pointer;
     user-select: none;
     transition: background-color 0.2s;
     position: relative;
+    margin: 0;
+    padding: 0;
 }
 
 /* Thicker borders for 3x3 boxes */
 .cell:nth-child(3n):not(:nth-child(9n)) {
     border-right: var(--grid-border);
+    margin-right: calc(var(--cell-padding) * 2);
 }
 
 .cell:nth-child(n+19):nth-child(-n+27),
 .cell:nth-child(n+46):nth-child(-n+54) {
     border-bottom: var(--grid-border);
+    margin-bottom: calc(var(--cell-padding) * 2);
+}
+
+/* Remove extra border for last column */
+.cell:nth-child(9n) {
+    border-right: none;
+}
+
+/* Remove extra border for last row */
+.cell:nth-child(n+73):nth-child(-n+81) {
+    border-bottom: none;
 }
 
 /* Pencil marks styling */
