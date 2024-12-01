@@ -210,17 +210,30 @@ body {
     color: #ea4335;
 }
 .cell.hint {
-    animation: pulse 1.5s infinite;
+    background-color: rgba(66, 133, 244, 0.1);
 }
 
-.hint-value {
-    position: absolute;
-    background-color: rgba(66, 133, 244, 0.9);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 18px;
-    z-index: 3;
+.cell.hint-active {
+    color: #4285f4;
+    font-weight: bold;
+}
+
+.cell.hint-reveal {
+    animation: reveal 0.5s ease-out;
+}
+
+@keyframes reveal {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    70% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 @keyframes pulse {

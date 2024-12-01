@@ -164,9 +164,9 @@ class SudokuGame {
         console.log('Selecting cell:', cell.dataset.row, cell.dataset.col);
         
         try {
-            // Clear previous selections and highlights
+            // Clear previous selections, highlights, and hint styling
             document.querySelectorAll('.cell').forEach(c => {
-                c.classList.remove('selected', 'related');
+                c.classList.remove('selected', 'related', 'hint');
             });
 
             // Don't select if game is paused
@@ -402,6 +402,12 @@ class SudokuGame {
 
     async getHint() {
         try {
+            // Validate current game state
+            if (this.isPaused) {
+                this.showError('Cannot get hint while game is paused');
+                return;
+            }
+
             const response = await fetch('/hint', {
                 method: 'POST',
                 headers: {
@@ -422,38 +428,73 @@ class SudokuGame {
             }
 
             const hint = await response.json();
+            
+            // Validate hint data
+            const index = hint.row * 9 + hint.col;
+            if (!this.isValidHint(hint.row, hint.col, hint.value)) {
+                throw new Error('Invalid hint received');
+            }
+
+            // Get the cell and validate it's empty or matches solution
             const cell = document.querySelector(
                 `.cell[data-row="${hint.row}"][data-col="${hint.col}"]`
             );
 
-            if (cell) {
-                // First, remove any previous hint highlights
-                document.querySelectorAll('.cell').forEach(c => 
-                    c.classList.remove('hint'));
-
-                // Highlight the hint cell
-                cell.classList.add('hint');
-                
-                // Show hint value temporarily
-                const originalContent = cell.textContent;
-                const hintDisplay = document.createElement('div');
-                hintDisplay.className = 'hint-value';
-                hintDisplay.textContent = hint.value;
-                cell.appendChild(hintDisplay);
-
-                // Remove hint after 3 seconds
-                setTimeout(() => {
-                    cell.classList.remove('hint');
-                    const hintValue = cell.querySelector('.hint-value');
-                    if (hintValue) {
-                        hintValue.remove();
-                    }
-                }, 3000);
+            if (!cell) {
+                throw new Error('Cell not found');
             }
+
+            // Remove previous hint highlights
+            document.querySelectorAll('.cell').forEach(c => {
+                c.classList.remove('hint', 'hint-active');
+            });
+
+            // Clear any existing pencil marks
+            if (this.pencilMarks[index]) {
+                this.pencilMarks[index].clear();
+                const pencilMarksContainer = cell.querySelector('.pencil-marks');
+                if (pencilMarksContainer) {
+                    pencilMarksContainer.innerHTML = '';
+                }
+            }
+
+            // Update game state and UI
+            this.currentNumbers[index] = hint.value;
+            cell.textContent = hint.value;
+            cell.classList.add('hint', 'hint-active');
+
+            // Add hint revealed animation
+            cell.classList.add('hint-reveal');
+            setTimeout(() => cell.classList.remove('hint-reveal'), 500);
+
+            // Validate the move
+            this.validateMove(hint.row, hint.col, parseInt(hint.value));
+
+            // Check if puzzle is complete
+            this.checkWin();
+
         } catch (error) {
             console.error('Error getting hint:', error);
-            this.showError('Failed to get hint');
+            this.showError('Failed to get hint: ' + error.message);
         }
+    }
+
+    isValidHint(row, col, value) {
+        // Check if indices are valid
+        if (row < 0 || row >= 9 || col < 0 || col >= 9) {
+            return false;
+        }
+
+        const index = row * 9 + col;
+        
+        // Check if cell is empty or matches solution
+        if (this.currentNumbers[index] !== '0' && 
+            this.currentNumbers[index] !== this.solution[index]) {
+            return false;
+        }
+
+        // Verify hint matches solution
+        return this.solution[index] === value;
     }
 }
 
