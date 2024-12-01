@@ -142,25 +142,117 @@ class SudokuGame {
     }
 
     selectCell(cell) {
-        if (this.selectedCell) {
-            this.selectedCell.classList.remove('selected');
+        console.log('Selecting cell:', cell.dataset.row, cell.dataset.col);
+        
+        try {
+            // Clear previous selections and highlights
+            document.querySelectorAll('.cell').forEach(c => {
+                c.classList.remove('selected', 'related');
+            });
+
+            // Don't select if game is paused
+            if (this.isPaused) {
+                console.log('Game is paused, cell selection blocked');
+                return;
+            }
+
+            // Set new selected cell
+            cell.classList.add('selected');
+            this.selectedCell = cell;
+
+            // Highlight related cells
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const box = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+
+            document.querySelectorAll('.cell').forEach(c => {
+                const cRow = parseInt(c.dataset.row);
+                const cCol = parseInt(c.dataset.col);
+                const cBox = Math.floor(cRow / 3) * 3 + Math.floor(cCol / 3);
+
+                if ((cRow === row || cCol === col || cBox === box) && c !== cell) {
+                    c.classList.add('related');
+                }
+            });
+
+            console.log('Cell selected and related cells highlighted');
+        } catch (error) {
+            console.error('Error in selectCell:', error);
         }
-        cell.classList.add('selected');
-        this.selectedCell = cell;
     }
 
     enterNumber(num) {
-        if (!this.selectedCell || this.isPaused) return;
+        console.log('Attempting to enter number:', num);
         
-        const row = parseInt(this.selectedCell.dataset.row);
-        const col = parseInt(this.selectedCell.dataset.col);
-        const index = row * 9 + col;
+        try {
+            if (!this.selectedCell) {
+                console.log('No cell selected');
+                return;
+            }
 
-        if (this.puzzle[index] === '0') {
+            if (this.isPaused) {
+                console.log('Game is paused');
+                return;
+            }
+
+            const row = parseInt(this.selectedCell.dataset.row);
+            const col = parseInt(this.selectedCell.dataset.col);
+            const index = row * 9 + col;
+
+            // Check if cell is part of initial puzzle
+            if (this.puzzle[index] !== '0') {
+                console.log('Cannot modify initial puzzle cell');
+                return;
+            }
+
+            // Handle pencil mode
+            if (this.pencilMode) {
+                this.togglePencilMark(index, num);
+                return;
+            }
+
+            // Update current numbers array and display
             this.currentNumbers[index] = num.toString();
             this.selectedCell.textContent = num;
+
+            // Clear pencil marks when entering a number
+            this.pencilMarks[index].clear();
+            this.selectedCell.querySelector('.pencil-marks').innerHTML = '';
+
+            // Validate move and check win condition
             this.validateMove(row, col, num);
             this.checkWin();
+
+            console.log('Number entered successfully');
+        } catch (error) {
+            console.error('Error in enterNumber:', error);
+        }
+    }
+
+    togglePencilMark(index, num) {
+        console.log('Toggling pencil mark:', num);
+        
+        try {
+            const pencilMarksContainer = this.selectedCell.querySelector('.pencil-marks');
+            
+            if (this.pencilMarks[index].has(num)) {
+                this.pencilMarks[index].delete(num);
+            } else {
+                this.pencilMarks[index].add(num);
+            }
+
+            // Update display
+            pencilMarksContainer.innerHTML = '';
+            for (let i = 1; i <= 9; i++) {
+                const mark = document.createElement('div');
+                mark.className = 'pencil-mark';
+                mark.textContent = this.pencilMarks[index].has(i) ? i : '';
+                pencilMarksContainer.appendChild(mark);
+            }
+
+            console.log('Pencil mark toggled successfully');
+        } catch (error) {
+            console.error('Error in togglePencilMark:', error);
         }
     }
 
@@ -209,6 +301,4 @@ class SudokuGame {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.game = new SudokuGame();
-});
+// Game initialization moved to index.html
