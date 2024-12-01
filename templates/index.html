@@ -14,9 +14,9 @@
             <div class="header-left">
                 <h1>Sudoku</h1>
                 <div class="difficulty-selector">
-                    <button class="mode-btn active">Easy</button>
-                    <button class="mode-btn">Medium</button>
-                    <button class="mode-btn">Hard</button>
+                    <button class="mode-btn active" id="new-game" data-difficulty="easy">Easy</button>
+                    <button class="mode-btn" data-difficulty="medium">Medium</button>
+                    <button class="mode-btn" data-difficulty="hard">Hard</button>
                 </div>
             </div>
             <div class="header-right">
@@ -71,12 +71,29 @@
         </div>
     </div>
 
+    <!-- Move all scripts to the bottom for better page load performance -->
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script>
-        feather.replace();
-    </script>
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sudoku.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+    <script>
+        // Initialize everything after DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Feather icons
+            feather.replace();
+            
+            // Initialize game after ensuring all elements are loaded
+            try {
+                window.game = new SudokuGame();
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+                // Show user-friendly error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = 'Failed to load the game. Please refresh the page.';
+                document.querySelector('.game-container').prepend(errorDiv);
+            }
+        });
+    </script>
 </body>
 </html>

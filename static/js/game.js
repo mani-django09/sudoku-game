@@ -4,7 +4,21 @@ class SudokuGame {
         this.puzzle = null;
         this.solution = null;
         this.currentNumbers = new Array(81).fill(0);
-        this.timer = new Timer();
+        this.pencilMode = false;
+        this.pencilMarks = Array(81).fill().map(() => new Set());
+        this.gameState = {
+            moves: [],
+            currentMove: -1
+        };
+        
+        // Initialize timer with error handling
+        try {
+            this.timer = new Timer();
+        } catch (error) {
+            console.error('Failed to initialize timer:', error);
+            throw new Error('Timer initialization failed');
+        }
+        
         this.initializeGame();
     }
 
@@ -17,20 +31,40 @@ class SudokuGame {
 
     setupBoard() {
         const board = document.getElementById('sudoku-board');
+        if (!board) {
+            throw new Error('Sudoku board element not found');
+        }
+
         for (let i = 0; i < 9; i++) {
             for (let j = 0; j < 9; j++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.row = i;
                 cell.dataset.col = j;
-                cell.addEventListener('click', () => this.selectCell(cell));
+                cell.dataset.index = i * 9 + j;
+                
+                // Add pencil marks container
+                const pencilMarks = document.createElement('div');
+                pencilMarks.className = 'pencil-marks';
+                cell.appendChild(pencilMarks);
+                
+                cell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.selectCell(cell);
+                });
+                
                 board.appendChild(cell);
             }
         }
     }
 
     setupControls() {
+        // Setup numpad
         const numpad = document.getElementById('numpad');
+        if (!numpad) {
+            throw new Error('Numpad element not found');
+        }
+        
         for (let i = 1; i <= 9; i++) {
             const button = document.createElement('button');
             button.textContent = i;
@@ -38,12 +72,21 @@ class SudokuGame {
             numpad.appendChild(button);
         }
 
-        document.getElementById('new-game').addEventListener('click', () => {
-            const difficulty = document.getElementById('difficulty').value;
-            this.newGame(difficulty);
+        // Setup difficulty buttons
+        const difficultyButtons = document.querySelectorAll('.mode-btn');
+        difficultyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                difficultyButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                this.newGame(button.dataset.difficulty);
+            });
         });
 
-        document.getElementById('pause').addEventListener('click', () => this.togglePause());
+        // Setup pause button
+        const pauseButton = document.getElementById('pause');
+        if (pauseButton) {
+            pauseButton.addEventListener('click', () => this.togglePause());
+        }
     }
 
     setupKeyboardInput() {
