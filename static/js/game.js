@@ -11,7 +11,9 @@ class SudokuGame {
         this.pencilMarks = Array(81).fill().map(() => new Set());
         this.gameState = {
             moves: [],
-            currentMove: -1
+            currentMove: -1,
+            remainingHints: 3,
+            mistakes: 0
         };
         
         // Initialize timer with error handling
@@ -47,13 +49,11 @@ class SudokuGame {
     setupBoard() {
         console.log('Setting up game board...');
         
-        // Get board element with error handling
         const board = document.getElementById('sudoku-board');
         if (!board) {
             throw new Error('Sudoku board element not found');
         }
         
-        // Clear existing content
         board.innerHTML = '';
         console.log('Board cleared, creating cells...');
 
@@ -66,12 +66,10 @@ class SudokuGame {
                     cell.dataset.col = j;
                     cell.dataset.index = i * 9 + j;
                     
-                    // Add pencil marks container
                     const pencilMarks = document.createElement('div');
                     pencilMarks.className = 'pencil-marks';
                     cell.appendChild(pencilMarks);
                     
-                    // Add click event with error handling
                     cell.addEventListener('click', (e) => {
                         try {
                             e.preventDefault();
@@ -98,6 +96,7 @@ class SudokuGame {
             throw new Error('Numpad element not found');
         }
         
+        numpad.innerHTML = '';
         for (let i = 1; i <= 9; i++) {
             const button = document.createElement('button');
             button.textContent = i;
@@ -105,46 +104,43 @@ class SudokuGame {
             numpad.appendChild(button);
         }
 
-        // Setup difficulty buttons
-        const difficultyButtons = document.querySelectorAll('.mode-btn');
-        difficultyButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                difficultyButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                this.newGame(button.dataset.difficulty);
-            });
-        });
-
-        // Setup pause button
-        const pauseButton = document.getElementById('pause');
-        if (pauseButton) {
-            pauseButton.addEventListener('click', () => this.togglePause());
+        // Setup control buttons
+        const undoButton = document.getElementById('undo');
+        if (undoButton) {
+            undoButton.addEventListener('click', () => this.undoMove());
         }
 
-        // Setup hint button
+        const eraseButton = document.getElementById('erase');
+        if (eraseButton) {
+            eraseButton.addEventListener('click', () => this.eraseNumber());
+        }
+
+        const pencilButton = document.getElementById('pencil');
+        if (pencilButton) {
+            pencilButton.addEventListener('click', () => this.togglePencilMode());
+        }
+
         const hintButton = document.getElementById('hint');
         if (hintButton) {
             hintButton.addEventListener('click', () => this.getHint());
         }
 
-        // Setup pencil mode button
-        const pencilButton = document.getElementById('pencil');
-        if (pencilButton) {
-            pencilButton.addEventListener('click', () => {
-                console.log('Toggling pencil mode');
-                this.pencilMode = !this.pencilMode;
-                pencilButton.classList.toggle('active');
-                console.log('Pencil mode:', this.pencilMode ? 'active' : 'inactive');
-            });
-        } else {
-            console.error('Pencil button not found');
+        // Setup New Game button
+        const newGameButton = document.querySelector('.new-game-btn');
+        if (newGameButton) {
+            newGameButton.addEventListener('click', () => this.newGame('easy'));
         }
+
+        // Update hint count display
+        this.updateHintCount();
     }
 
     setupKeyboardInput() {
         document.addEventListener('keydown', (e) => {
             if (e.key >= '1' && e.key <= '9') {
                 this.enterNumber(parseInt(e.key));
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                this.eraseNumber();
             }
         });
     }
@@ -155,6 +151,17 @@ class SudokuGame {
         this.puzzle = data.puzzle;
         this.solution = data.solution;
         this.currentNumbers = [...this.puzzle];
+        this.gameState = {
+            moves: [],
+            currentMove: -1,
+            remainingHints: 3,
+            mistakes: 0
+        };
+        this.pencilMarks = Array(81).fill().map(() => new Set());
+        this.pencilMode = false;
+        this.updatePencilModeIndicator();
+        this.updateHintCount();
+        this.updateMistakesDisplay();
         this.renderBoard();
         this.timer.reset();
         this.timer.start();
@@ -164,7 +171,7 @@ class SudokuGame {
         console.log('Selecting cell:', cell.dataset.row, cell.dataset.col);
         
         try {
-            // Clear previous selections, highlights, and hint styling
+            // Clear previous selections and highlights
             document.querySelectorAll('.cell').forEach(c => {
                 c.classList.remove('selected', 'related', 'hint');
             });
@@ -204,9 +211,8 @@ class SudokuGame {
         console.log('Attempting to enter number:', num);
         
         try {
-            // Type checking and validation
             if (!Number.isInteger(num) || num < 1 || num > 9) {
-                throw new Error(`Invalid number: ${num}. Must be an integer between 1 and 9.`);
+                throw new Error(`Invalid number: ${num}`);
             }
 
             if (!this.selectedCell) {
@@ -219,59 +225,61 @@ class SudokuGame {
                 return;
             }
 
-            // Validate cell data
             const row = parseInt(this.selectedCell.dataset.row);
             const col = parseInt(this.selectedCell.dataset.col);
-            if (isNaN(row) || isNaN(col) || row < 0 || row >= 9 || col < 0 || col >= 9) {
-                throw new Error(`Invalid cell coordinates: row=${row}, col=${col}`);
-            }
-
             const index = row * 9 + col;
-            console.log('Current game state:', {
-                row,
-                col,
-                index,
-                isPencilMode: this.pencilMode,
-                currentValue: this.currentNumbers[index],
-                isInitialCell: this.puzzle[index] !== '0'
-            });
 
-            // Check if cell is part of initial puzzle
             if (this.puzzle[index] !== '0') {
                 console.log('Cannot modify initial puzzle cell');
                 this.showError('Cannot modify initial numbers');
                 return;
             }
 
-            // Handle pencil mode
+            // Save move for undo
+            const oldState = {
+                index: index,
+                value: this.currentNumbers[index],
+                pencilMarks: new Set(this.pencilMarks[index])
+            };
+
             if (this.pencilMode) {
                 this.togglePencilMark(index, num);
-                return;
-            }
-
-            // Update current numbers array and validate
-            if (!Array.isArray(this.currentNumbers) || this.currentNumbers.length !== 81) {
-                throw new Error('Invalid game state: currentNumbers array is corrupted');
-            }
-
-            // Update display and array
-            this.currentNumbers[index] = num.toString();
-            this.selectedCell.textContent = num;
-
-            // Clear pencil marks when entering a number
-            if (this.pencilMarks[index]) {
+            } else {
+                // Clear pencil marks
                 this.pencilMarks[index].clear();
                 const pencilMarksContainer = this.selectedCell.querySelector('.pencil-marks');
                 if (pencilMarksContainer) {
                     pencilMarksContainer.innerHTML = '';
                 }
+
+                // Update number
+                this.currentNumbers[index] = num.toString();
+                this.selectedCell.textContent = num;
+
+                // Validate move
+                if (this.solution[index] !== num.toString()) {
+                    this.gameState.mistakes++;
+                    this.updateMistakesDisplay();
+                    this.selectedCell.classList.add('invalid');
+                } else {
+                    this.selectedCell.classList.add('valid');
+                }
             }
 
-            // Validate move and check win condition
-            this.validateMove(row, col, num);
-            this.checkWin();
+            // Record move
+            this.gameState.moves.splice(this.gameState.currentMove + 1);
+            this.gameState.moves.push({
+                type: this.pencilMode ? 'pencil' : 'number',
+                oldState: oldState,
+                newState: {
+                    index: index,
+                    value: this.currentNumbers[index],
+                    pencilMarks: new Set(this.pencilMarks[index])
+                }
+            });
+            this.gameState.currentMove++;
 
-            console.log('Number entered successfully');
+            this.checkWin();
         } catch (error) {
             console.error('Error in enterNumber:', error);
             this.showError(error.message);
@@ -282,7 +290,6 @@ class SudokuGame {
         console.log('Toggling pencil mark:', num, 'at index:', index);
         
         try {
-            // Validate inputs
             if (index < 0 || index >= 81 || num < 1 || num > 9) {
                 throw new Error('Invalid index or number for pencil mark');
             }
@@ -292,55 +299,201 @@ class SudokuGame {
                 throw new Error('Pencil marks container not found');
             }
 
-            // Create Set if it doesn't exist
             if (!this.pencilMarks[index]) {
                 this.pencilMarks[index] = new Set();
             }
 
-            // Toggle the number
             const hasNumber = this.pencilMarks[index].has(num);
-            console.log('Current pencil marks:', Array.from(this.pencilMarks[index]));
             
             if (hasNumber) {
                 this.pencilMarks[index].delete(num);
-                console.log('Removed pencil mark:', num);
             } else {
                 this.pencilMarks[index].add(num);
-                console.log('Added pencil mark:', num);
             }
 
-            // Clear and update display
-            pencilMarksContainer.innerHTML = '';
-            const grid = document.createElement('div');
-            grid.className = 'pencil-marks-grid';
-
-            // Create all 9 positions
-            for (let i = 1; i <= 9; i++) {
-                const mark = document.createElement('div');
-                mark.className = 'pencil-mark';
-                if (this.pencilMarks[index].has(i)) {
-                    mark.textContent = i;
-                }
-                pencilMarksContainer.appendChild(mark);
-            }
-
-            console.log('Pencil marks updated:', Array.from(this.pencilMarks[index]));
+            this.renderPencilMarks(index);
         } catch (error) {
             console.error('Error in togglePencilMark:', error);
-            // Show user feedback if needed
             this.selectedCell.classList.add('error');
             setTimeout(() => this.selectedCell.classList.remove('error'), 1000);
         }
     }
 
-    validateMove(row, col, num) {
-        const index = row * 9 + col;
-        if (this.solution[index] === num.toString()) {
-            this.selectedCell.classList.remove('invalid');
-            this.selectedCell.classList.add('valid');
+    renderPencilMarks(index) {
+        const cell = document.querySelector(`.cell[data-index="${index}"]`);
+        const pencilMarksContainer = cell.querySelector('.pencil-marks');
+        pencilMarksContainer.innerHTML = '';
+
+        const grid = document.createElement('div');
+        grid.className = 'pencil-marks-grid';
+
+        for (let i = 1; i <= 9; i++) {
+            const mark = document.createElement('div');
+            mark.className = 'pencil-mark';
+            if (this.pencilMarks[index].has(i)) {
+                mark.textContent = i;
+            }
+            grid.appendChild(mark);
+        }
+
+        pencilMarksContainer.appendChild(grid);
+    }
+
+    undoMove() {
+        if (this.gameState.currentMove < 0) {
+            console.log('No moves to undo');
+            return;
+        }
+
+        const move = this.gameState.moves[this.gameState.currentMove];
+        const cell = document.querySelector(`.cell[data-index="${move.oldState.index}"]`);
+
+        // Restore previous state
+        this.currentNumbers[move.oldState.index] = move.oldState.value;
+        this.pencilMarks[move.oldState.index] = new Set(move.oldState.pencilMarks);
+
+        // Update UI
+        if (move.type === 'pencil') {
+            this.renderPencilMarks(move.oldState.index);
         } else {
-            this.selectedCell.classList.remove('valid');
-            this.selectedCell.classList.add('invalid');
+            cell.textContent = move.oldState.value || '';
+            cell.classList.remove('valid', 'invalid');
+        }
+
+        this.gameState.currentMove--;
+    }
+
+    eraseNumber() {
+        if (!this.selectedCell) {
+            return;
+        }
+
+        const index = parseInt(this.selectedCell.dataset.index);
+        if (this.puzzle[index] !== '0') {
+            this.showError('Cannot erase initial numbers');
+            return;
+        }
+
+        // Save current state for undo
+        const oldState = {
+            index: index,
+            value: this.currentNumbers[index],
+            pencilMarks: new Set(this.pencilMarks[index])
+        };
+
+        // Clear number and pencil marks
+        this.currentNumbers[index] = '0';
+        this.pencilMarks[index].clear();
+        this.selectedCell.textContent = '';
+        this.selectedCell.classList.remove('valid', 'invalid');
+        this.renderPencilMarks(index);
+
+        // Record move
+        this.gameState.moves.splice(this.gameState.currentMove + 1);
+        this.gameState.moves.push({
+            type: 'erase',
+            oldState: oldState,
+            newState: {
+                index: index,
+                value: '0',
+                pencilMarks: new Set()
+            }
+        });
+        this.gameState.currentMove++;
+    }
+
+    togglePencilMode() {
+        this.pencilMode = !this.pencilMode;
+        this.updatePencilModeIndicator();
+    }
+
+    updatePencilModeIndicator() {
+        const pencilButton = document.getElementById('pencil');
+        const stateIndicator = pencilButton.querySelector('.state-indicator');
+        if (stateIndicator) {
+            stateIndicator.textContent = this.pencilMode ? 'ON' : 'OFF';
+        }
+        pencilButton.classList.toggle('active', this.pencilMode);
+    }
+
+    async getHint() {
+        try {
+            if (this.gameState.remainingHints <= 0) {
+                this.showError('No hints remaining');
+                return;
+            }
+
+            if (this.isPaused) {
+                this.showError('Cannot get hint while game is paused');
+                return;
+            }
+
+            const response = await fetch('/hint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_state: this.currentNumbers.join(''),
+                    solution: this.solution
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    this.showError('No hints available');
+                    return;
+                }
+                throw new Error('Failed to get hint');
+            }
+
+            const hint = await response.json();
+            const index = hint.row * 9 + hint.col;
+            const cell = document.querySelector(
+                `.cell[data-row="${hint.row}"][data-col="${hint.col}"]`
+            );
+
+            if (!cell) {
+                throw new Error('Cell not found');
+            }
+
+            // Clear pencil marks
+            this.pencilMarks[index].clear();
+            this.renderPencilMarks(index);
+
+            // Update game state and UI
+            this.currentNumbers[index] = hint.value;
+            cell.textContent = hint.value;
+            cell.classList.add('hint', 'hint-active');
+            cell.classList.add('hint-reveal');
+            setTimeout(() => cell.classList.remove('hint-reveal'), 500);
+
+            // Decrement hint count
+            this.gameState.remainingHints--;
+            this.updateHintCount();
+
+            // Check if puzzle is complete
+            this.checkWin();
+
+        } catch (error) {
+            console.error('Error getting hint:', error);
+            this.showError('Failed to get hint: ' + error.message);
+        }
+    }
+
+    updateHintCount() {
+        const hintButton = document.getElementById('hint');
+        const hintCount = hintButton.querySelector('.hint-count');
+        if (hintCount) {
+            hintCount.textContent = this.gameState.remainingHints;
+        }
+        hintButton.disabled = this.gameState.remainingHints <= 0;
+    }
+
+    updateMistakesDisplay() {
+        const mistakesElement = document.getElementById('mistakes');
+        if (mistakesElement) {
+            mistakesElement.textContent = `${this.gameState.mistakes}/3`;
         }
     }
 
@@ -374,13 +527,13 @@ class SudokuGame {
                 cell.textContent = '';
                 cell.classList.remove('initial');
             }
+            this.renderPencilMarks(index);
         });
     }
 
     showError(message) {
         console.error('Game error:', message);
         
-        // Add error class to selected cell
         if (this.selectedCell) {
             this.selectedCell.classList.add('error');
             setTimeout(() => {
@@ -388,8 +541,6 @@ class SudokuGame {
             }, 1500);
         }
 
-        // Optional: Show error message to user
-        // You could create a toast/notification system here
         const errorDiv = document.createElement('div');
         errorDiv.className = 'game-error';
         errorDiv.textContent = message;
@@ -400,102 +551,18 @@ class SudokuGame {
         }, 3000);
     }
 
-    async getHint() {
-        try {
-            // Validate current game state
-            if (this.isPaused) {
-                this.showError('Cannot get hint while game is paused');
-                return;
-            }
-
-            const response = await fetch('/hint', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    current_state: this.currentNumbers.join(''),
-                    solution: this.solution
-                })
-            });
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    this.showError('No hints available');
-                    return;
-                }
-                throw new Error('Failed to get hint');
-            }
-
-            const hint = await response.json();
-            
-            // Validate hint data
-            const index = hint.row * 9 + hint.col;
-            if (!this.isValidHint(hint.row, hint.col, hint.value)) {
-                throw new Error('Invalid hint received');
-            }
-
-            // Get the cell and validate it's empty or matches solution
-            const cell = document.querySelector(
-                `.cell[data-row="${hint.row}"][data-col="${hint.col}"]`
-            );
-
-            if (!cell) {
-                throw new Error('Cell not found');
-            }
-
-            // Remove previous hint highlights
-            document.querySelectorAll('.cell').forEach(c => {
-                c.classList.remove('hint', 'hint-active');
-            });
-
-            // Clear any existing pencil marks
-            if (this.pencilMarks[index]) {
-                this.pencilMarks[index].clear();
-                const pencilMarksContainer = cell.querySelector('.pencil-marks');
-                if (pencilMarksContainer) {
-                    pencilMarksContainer.innerHTML = '';
-                }
-            }
-
-            // Update game state and UI
-            this.currentNumbers[index] = hint.value;
-            cell.textContent = hint.value;
-            cell.classList.add('hint', 'hint-active');
-
-            // Add hint revealed animation
-            cell.classList.add('hint-reveal');
-            setTimeout(() => cell.classList.remove('hint-reveal'), 500);
-
-            // Validate the move
-            this.validateMove(hint.row, hint.col, parseInt(hint.value));
-
-            // Check if puzzle is complete
-            this.checkWin();
-
-        } catch (error) {
-            console.error('Error getting hint:', error);
-            this.showError('Failed to get hint: ' + error.message);
-        }
-    }
-
     isValidHint(row, col, value) {
-        // Check if indices are valid
         if (row < 0 || row >= 9 || col < 0 || col >= 9) {
             return false;
         }
 
         const index = row * 9 + col;
         
-        // Check if cell is empty or matches solution
         if (this.currentNumbers[index] !== '0' && 
             this.currentNumbers[index] !== this.solution[index]) {
             return false;
         }
 
-        // Verify hint matches solution
         return this.solution[index] === value;
     }
 }
-
-// Game initialization moved to index.html
