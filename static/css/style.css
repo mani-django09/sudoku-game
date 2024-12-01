@@ -421,6 +421,24 @@ body {
     animation: slideDown 0.3s ease-out;
 }
 
+/* Hint Message Styles */
+.hint-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4285f4;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    z-index: 1000;
+    animation: slideDown 0.3s ease-out;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    font-size: 14px;
+    max-width: 80%;
+    text-align: center;
+}
+
 .cell.error {
     animation: shake 0.5s ease-in-out;
 }

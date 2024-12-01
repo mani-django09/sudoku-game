@@ -23,18 +23,29 @@ def get_hint():
     if not current_state or not solution:
         return jsonify({'error': 'Missing required data'}), 400
     
-    # Find the first cell that doesn't match the solution
-    for i in range(len(current_state)):
-        if current_state[i] == '0' and solution[i] != '0':
-            row = i // 9
-            col = i % 9
-            return jsonify({
-                'row': row,
-                'col': col,
-                'value': solution[i]
-            })
+    # Get hint candidates with analysis
+    candidates = analyze_hint_candidates(current_state, solution)
     
-    return jsonify({'message': 'No hints available'}), 404
+    if not candidates:
+        return jsonify({'message': 'No hints available'}), 404
+    
+    # Get the best hint (first candidate)
+    best_hint = candidates[0]
+    
+    # Prepare hint message based on technique
+    hint_messages = {
+        'single_candidate': 'Look for a cell where only one number is possible',
+        'hidden_single': 'Find a number that can only go in one position',
+        'basic_elimination': 'Use basic elimination to find the correct number'
+    }
+    
+    return jsonify({
+        'row': best_hint['row'],
+        'col': best_hint['col'],
+        'value': best_hint['value'],
+        'technique': best_hint['technique'],
+        'message': hint_messages.get(best_hint['technique'], 'Use elimination to solve this cell')
+    })
 
 
 @app.route('/contact', methods=['GET', 'POST'])

@@ -300,11 +300,22 @@ class SudokuGame {
             this.pencilMarks[index].clear();
             this.renderPencilMarks(index);
 
+            // Show hint message
+            const hintMessage = document.createElement('div');
+            hintMessage.className = 'hint-message';
+            hintMessage.textContent = hint.message;
+            document.querySelector('.game-container').appendChild(hintMessage);
+            
             // Update number and UI
             this.currentNumbers[index] = hint.value;
             cell.textContent = hint.value;
             cell.classList.add('hint', 'hint-active');
             cell.classList.add('hint-reveal');
+            
+            // Remove hint message after delay
+            setTimeout(() => {
+                hintMessage.remove();
+            }, 5000);
             
             // Record move
             this.gameState.moves.splice(this.gameState.currentMove + 1);
