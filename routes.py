@@ -65,32 +65,52 @@ def contact():
 
 @app.route('/daily-challenge')
 def daily_challenge():
-    from models import DailyPuzzle
-    from utils.generator import generate_puzzle
-    
-    today = datetime.now().date()
-    
-    # Try to get today's puzzle from the database
-    daily_puzzle = DailyPuzzle.query.filter_by(puzzle_date=today).first()
-    
-    if not daily_puzzle:
-        # Generate a new puzzle with random difficulty
-        difficulty = random.choice(['easy', 'medium', 'hard'])
-        puzzle, solution = generate_puzzle(difficulty)
+    try:
+        from models import DailyPuzzle
+        from utils.generator import generate_puzzle
+        from app import db
+        import logging
         
-        # Create new daily puzzle
-        daily_puzzle = DailyPuzzle(
-            puzzle_date=today,
-            puzzle=puzzle,
-            solution=solution,
-            difficulty=difficulty
-        )
-        db.session.add(daily_puzzle)
-        db.session.commit()
-    
-    return jsonify({
-        'puzzle': daily_puzzle.puzzle,
-        'solution': daily_puzzle.solution,
-        'difficulty': daily_puzzle.difficulty,
-        'date': daily_puzzle.puzzle_date.strftime('%Y-%m-%d')
-    })
+        logging.info("Accessing daily challenge endpoint")
+        today = datetime.now().date()
+        
+        # Try to get today's puzzle from the database
+        try:
+            daily_puzzle = DailyPuzzle.query.filter_by(puzzle_date=today).first()
+            logging.info(f"Queried daily puzzle for date: {today}")
+        except Exception as db_error:
+            logging.error(f"Database error while fetching daily puzzle: {str(db_error)}")
+            return jsonify({'error': 'Failed to fetch daily puzzle'}), 500
+        
+        if not daily_puzzle:
+            logging.info("No puzzle found for today, generating new puzzle")
+            try:
+                # Generate a new puzzle with random difficulty
+                difficulty = random.choice(['easy', 'medium', 'hard'])
+                puzzle, solution = generate_puzzle(difficulty)
+                
+                # Create new daily puzzle
+                daily_puzzle = DailyPuzzle(
+                    puzzle_date=today,
+                    puzzle=puzzle,
+                    solution=solution,
+                    difficulty=difficulty
+                )
+                db.session.add(daily_puzzle)
+                db.session.commit()
+                logging.info(f"Created new daily puzzle with difficulty: {difficulty}")
+            except Exception as gen_error:
+                logging.error(f"Error generating/saving new puzzle: {str(gen_error)}")
+                db.session.rollback()
+                return jsonify({'error': 'Failed to generate new puzzle'}), 500
+        
+        return jsonify({
+            'puzzle': daily_puzzle.puzzle,
+            'solution': daily_puzzle.solution,
+            'difficulty': daily_puzzle.difficulty,
+            'date': daily_puzzle.puzzle_date.strftime('%Y-%m-%d')
+        })
+        
+    except Exception as e:
+        logging.error(f"Unexpected error in daily challenge: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
