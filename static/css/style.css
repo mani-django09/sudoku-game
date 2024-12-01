@@ -209,6 +209,31 @@ body {
 .cell.invalid {
     color: #ea4335;
 }
+.cell.hint {
+    animation: pulse 1.5s infinite;
+}
+
+.hint-value {
+    position: absolute;
+    background-color: rgba(66, 133, 244, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 18px;
+    z-index: 3;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(66, 133, 244, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(66, 133, 244, 0);
+    }
+}
 
 /* Game Controls */
 .game-controls {

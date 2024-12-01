@@ -121,6 +121,12 @@ class SudokuGame {
             pauseButton.addEventListener('click', () => this.togglePause());
         }
 
+        // Setup hint button
+        const hintButton = document.getElementById('hint');
+        if (hintButton) {
+            hintButton.addEventListener('click', () => this.getHint());
+        }
+
         // Setup pencil mode button
         const pencilButton = document.getElementById('pencil');
         if (pencilButton) {
@@ -392,6 +398,62 @@ class SudokuGame {
         setTimeout(() => {
             errorDiv.remove();
         }, 3000);
+    }
+
+    async getHint() {
+        try {
+            const response = await fetch('/hint', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_state: this.currentNumbers.join(''),
+                    solution: this.solution
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    this.showError('No hints available');
+                    return;
+                }
+                throw new Error('Failed to get hint');
+            }
+
+            const hint = await response.json();
+            const cell = document.querySelector(
+                `.cell[data-row="${hint.row}"][data-col="${hint.col}"]`
+            );
+
+            if (cell) {
+                // First, remove any previous hint highlights
+                document.querySelectorAll('.cell').forEach(c => 
+                    c.classList.remove('hint'));
+
+                // Highlight the hint cell
+                cell.classList.add('hint');
+                
+                // Show hint value temporarily
+                const originalContent = cell.textContent;
+                const hintDisplay = document.createElement('div');
+                hintDisplay.className = 'hint-value';
+                hintDisplay.textContent = hint.value;
+                cell.appendChild(hintDisplay);
+
+                // Remove hint after 3 seconds
+                setTimeout(() => {
+                    cell.classList.remove('hint');
+                    const hintValue = cell.querySelector('.hint-value');
+                    if (hintValue) {
+                        hintValue.remove();
+                    }
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error getting hint:', error);
+            this.showError('Failed to get hint');
+        }
     }
 }
 
