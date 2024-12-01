@@ -20,6 +20,10 @@
                 </div>
             </div>
             <div class="header-right">
+                <div class="game-stats">
+                    <div class="mistakes">Mistakes: <span id="mistakes">0/3</span></div>
+                    <div class="score">Score: <span id="score">0</span></div>
+                </div>
                 <button id="pause" class="icon-btn">
                     <i data-feather="pause"></i>
                 </button>
@@ -32,21 +36,31 @@
             
             <div class="game-controls">
                 <div class="control-buttons">
-                    <button class="icon-btn" id="undo">
+                    <button class="control-btn" id="undo">
                         <i data-feather="rotate-ccw"></i>
+                        <span>Undo</span>
                     </button>
-                    <button class="icon-btn" id="redo">
-                        <i data-feather="rotate-cw"></i>
+                    <button class="control-btn" id="erase">
+                        <i data-feather="delete"></i>
+                        <span>Erase</span>
                     </button>
-                    <button class="icon-btn" id="hint">
+                    <button class="control-btn" id="pencil">
+                        <i data-feather="edit-2"></i>
+                        <span>Notes</span>
+                        <div class="state-indicator">OFF</div>
+                    </button>
+                    <button class="control-btn" id="hint">
                         <i data-feather="help-circle"></i>
-                    </button>
-                    <button class="icon-btn" id="pencil">
-                        <i data-feather="edit"></i>
+                        <span>Hint</span>
+                        <div class="hint-count">3</div>
                     </button>
                 </div>
                 
                 <div id="numpad" class="numpad-grid"></div>
+
+                <button id="new-game" class="new-game-btn">
+                    New Game
+                </button>
             </div>
         </div>
 
