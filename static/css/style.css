@@ -510,20 +510,20 @@ body {
     text-decoration: underline;
 }
 
-.social-links {
+.contact-options {
     display: flex;
-    gap: 16px;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.social-links a {
+.contact-options a {
     color: #4285f4;
-    line-height: 0;
+    text-decoration: none;
+    font-size: 14px;
 }
 
-.social-links svg {
-    width: 20px;
-    height: 20px;
-    stroke: currentColor;
+.contact-options a:hover {
+    text-decoration: underline;
 }
 
 /* Responsive Footer */
