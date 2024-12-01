@@ -872,7 +872,13 @@ class SudokuGame {
                 'hint-hidden-single',
                 'hint-highlight',
                 'hint-pair',
-                'hint-affected'
+                'hint-affected',
+                'hint-naked-pair',
+                'hint-hidden-pair',
+                'hint-pointing-pair',
+                'hint-box-line',
+                'hint-primary',
+                'hint-secondary'
             );
         });
     }
@@ -892,10 +898,22 @@ class SudokuGame {
             // Clear any existing visualizations
             this.clearTechniqueVisualizations();
 
-            // Create hint message overlay
+            // Create hint message overlay with technique indicator
             const hintOverlay = document.createElement('div');
-            hintOverlay.className = 'hint-overlay';
-            hintOverlay.textContent = message;
+            hintOverlay.className = `hint-overlay hint-overlay-${technique}`;
+            
+            // Create technique badge
+            const techniqueBadge = document.createElement('div');
+            techniqueBadge.className = 'technique-badge';
+            techniqueBadge.textContent = technique.replace(/_/g, ' ').toUpperCase();
+            hintOverlay.appendChild(techniqueBadge);
+
+            // Add message with enhanced styling
+            const messageElement = document.createElement('div');
+            messageElement.className = 'hint-message';
+            messageElement.textContent = message;
+            hintOverlay.appendChild(messageElement);
+
             document.querySelector('.game-container').appendChild(hintOverlay);
 
             let delay = 0; // Common delay variable for all animations
@@ -903,23 +921,108 @@ class SudokuGame {
             // Add visualization based on technique
             switch (technique) {
                 case 'single_candidate':
-                    mainCell.classList.add('hint-single');
-                    // Animate related cells sequentially
+                    mainCell.classList.add('hint-single', 'hint-primary');
+                    // Animate related cells sequentially with improved timing
+                    related_cells.forEach(({ row, col }, index) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                relatedCell.classList.add('hint-elimination', 'hint-highlight');
+                                // Pulse animation for emphasis
+                                setTimeout(() => relatedCell.classList.add('hint-pulse'), 100);
+                            }, delay);
+                            delay += 150; // Faster sequence for better visualization
+                        }
+                    });
+                    break;
+
+                case 'hidden_single':
+                    mainCell.classList.add('hint-hidden-single', 'hint-primary');
+                    // Enhanced animation for hidden single visualization
                     related_cells.forEach(({ row, col }) => {
                         const relatedIndex = row * 9 + col;
                         const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
                         if (relatedCell) {
                             setTimeout(() => {
-                                relatedCell.classList.add('hint-elimination');
-                                relatedCell.classList.add('hint-highlight');
+                                relatedCell.classList.add('hint-related', 'hint-secondary');
+                            }, delay);
+                        }
+                    });
+                    break;
+
+                case 'naked_pair':
+                    mainCell.classList.add('hint-naked-pair', 'hint-primary');
+                    let pairIndex = 0;
+                    related_cells.forEach(({ row, col }) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                if (pairIndex < 2) {
+                                    // Highlight the pair cells
+                                    relatedCell.classList.add('hint-naked-pair', 'hint-primary');
+                                } else {
+                                    // Highlight affected cells
+                                    relatedCell.classList.add('hint-affected', 'hint-secondary');
+                                }
+                            }, delay);
+                            delay += 200;
+                            pairIndex++;
+                        }
+                    });
+                    break;
+
+                case 'hidden_pair':
+                    mainCell.classList.add('hint-hidden-pair', 'hint-primary');
+                    related_cells.forEach(({ row, col }, index) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                if (index < 2) {
+                                    relatedCell.classList.add('hint-hidden-pair', 'hint-primary');
+                                } else {
+                                    relatedCell.classList.add('hint-related', 'hint-secondary');
+                                }
                             }, delay);
                             delay += 200;
                         }
                     });
                     break;
 
-                case 'hidden_single':
-                    mainCell.classList.add('hint-hidden-single');
+                case 'pointing_pair':
+                    mainCell.classList.add('hint-pointing-pair', 'hint-primary');
+                    related_cells.forEach(({ row, col }, index) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                if (index < 2) {
+                                    relatedCell.classList.add('hint-pointing-pair', 'hint-primary');
+                                } else {
+                                    relatedCell.classList.add('hint-affected', 'hint-secondary');
+                                }
+                                relatedCell.classList.add('hint-pulse');
+                            }, delay);
+                            delay += 200;
+                        }
+                    });
+                    break;
+
+                case 'box_line_reduction':
+                    mainCell.classList.add('hint-box-line', 'hint-primary');
+                    related_cells.forEach(({ row, col }, index) => {
+                        const relatedIndex = row * 9 + col;
+                        const relatedCell = document.querySelector(`.cell[data-index="${relatedIndex}"]`);
+                        if (relatedCell) {
+                            setTimeout(() => {
+                                relatedCell.classList.add('hint-box-line', index < 3 ? 'hint-primary' : 'hint-secondary');
+                            }, delay);
+                            delay += 150;
+                        }
+                    });
+                    break;
                     // Group visualization
                     related_cells.forEach(({ row, col }) => {
                         const relatedIndex = row * 9 + col;
