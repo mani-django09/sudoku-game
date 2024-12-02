@@ -583,8 +583,18 @@ class SudokuGame {
         const newGameButton = document.getElementById('new-game-btn');
         if (newGameButton) {
             newGameButton.addEventListener('click', () => {
-                const activeDifficulty = document.querySelector('.mode-btn.active');
-                this.newGame(activeDifficulty ? activeDifficulty.dataset.difficulty : 'easy');
+                // Get current difficulty from active difficulty button
+                const activeDifficultyBtn = document.querySelector('.mode-btn.active');
+                const difficulty = activeDifficultyBtn ? activeDifficultyBtn.dataset.difficulty : 'easy';
+                
+                // Call the newGame function with the current difficulty
+                this.newGame(difficulty);
+                
+                // Update UI to show loading state
+                newGameButton.disabled = true;
+                setTimeout(() => {
+                    newGameButton.disabled = false;
+                }, 1000);
             });
         }
 
@@ -692,10 +702,13 @@ class SudokuGame {
                     this.updateMistakesDisplay();
                     this.selectedCell.classList.add('invalid');
                     
-                    if (this.gameState.mistakes >= 3) {
-                        this.showError('Game Over: Too many mistakes');
+                    if (this.gameState.mistakes >= 5) {
+                        this.showError('Game Over: Too many mistakes. Try a new game!');
                         this.timer.stop();
+                        document.getElementById('sudoku-board').classList.add('game-over');
                         return;
+                    } else if (this.gameState.mistakes === 4) {
+                        this.showError('Warning: One more mistake will end the game!');
                     }
                 } else {
                     this.selectedCell.classList.add('valid');
